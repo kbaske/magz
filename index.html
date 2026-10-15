@@ -14,10 +14,7 @@
         --sub: #5f6368;
         --line: #dadce0;
         --bg: #fff;
-        --chip: #e8f0fe;
-        --blue: #1a73e8;
-        --wood: #5e3b1e;
-        --plank: #9c6b3c;
+        --accent: #e06900;
       }
       * {
         box-sizing: border-box;
@@ -44,7 +41,7 @@
         z-index: 5;
         background: var(--bg);
         border-bottom: 1px solid #e8eaed;
-        padding: 12px 20px 0;
+        padding: 12px 20px;
       }
       .top {
         display: flex;
@@ -87,144 +84,197 @@
         color: var(--ink);
         min-width: 0;
       }
-      .chips {
-        display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        padding: 12px 0;
-        scrollbar-width: none;
+      [hidden] {
+        display: none !important;
       }
-      .chips::-webkit-scrollbar {
-        display: none;
-      }
-      .chips:empty {
-        display: none;
-      }
-      .chip {
-        flex: none;
-        height: 32px;
-        padding: 0 14px;
-        border-radius: 8px;
-        border: 1px solid var(--line);
-        background: #fff;
-        font: inherit;
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--ink);
-        cursor: pointer;
-      }
-      .chip:hover {
-        background: #f6f8fc;
-      }
-      .chip[aria-pressed="true"] {
-        background: var(--chip);
-        color: #174ea6;
-        border-color: var(--chip);
-      }
-
-      /* shelves */
       main {
         padding: 8px 20px 56px;
-        max-width: 1000px;
+        max-width: 1100px;
         margin: 0 auto;
       }
-      .cat {
+      .cat,
+      .genres {
         margin-top: 28px;
+      }
+      .cat {
+        scroll-margin-top: 76px;
       }
       .cat-h {
         display: flex;
-        align-items: baseline;
+        align-items: center;
         gap: 12px;
-        margin: 0 4px 12px;
+        margin: 0 0 14px;
       }
       .cat-h h2 {
         margin: 0;
-        font-size: 20px;
+        font-size: 24px;
         font-weight: 500;
       }
-      .cat-h span {
+      .va {
+        margin-left: auto;
+        height: 40px;
+        padding: 0 24px;
+        border: 0;
+        border-radius: 20px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-size: 15px;
+        cursor: pointer;
+      }
+      .va:hover {
+        filter: brightness(1.08);
+      }
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: 14px;
+      }
+      .tile {
+        all: unset;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 18px 10px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14);
+        cursor: pointer;
+        text-align: center;
+        min-width: 0;
+        transition:
+          box-shadow 0.15s,
+          transform 0.15s;
+      }
+      .tile:hover,
+      .tile:focus-visible {
+        box-shadow: 0 5px 16px rgba(224, 105, 0, 0.3);
+        transform: translateY(-2px);
+      }
+      .tile:focus-visible,
+      .card:focus-visible {
+        outline: 3px solid var(--accent);
+      }
+      .ti {
+        width: 64px;
+        height: 64px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 28px;
+        font-weight: 700;
+        font-family: "Noto Sans Ol Chiki", Roboto, sans-serif;
+      }
+      .tn {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 16px;
+        font-weight: 500;
+      }
+      .tc {
         color: var(--sub);
         font-size: 14px;
       }
-      .frame {
-        background: var(--wood);
-        border-radius: 12px 12px 0 0;
-        padding: 14px 14px 0;
-        box-shadow: 0 18px 28px -18px rgba(60, 35, 10, 0.6);
+      .tc b {
+        color: var(--accent);
+        font-weight: 500;
       }
-      .inner {
-        display: flex;
-        align-items: flex-end;
-        gap: 14px;
-        padding: 40px 22px 0;
-        background: linear-gradient(#1f1209, #40291b);
-        overflow-x: auto;
-        overflow-y: hidden;
-        scrollbar-width: thin;
-        box-shadow: inset 0 12px 20px rgba(0, 0, 0, 0.5);
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px 16px;
       }
-      .plank {
-        height: 18px;
-        background: var(--plank);
-        margin: 0 14px;
-      }
-      .base {
-        height: 14px;
-        background: #4a2b14;
-        border-radius: 3px;
-        margin: 0 -6px;
-        box-shadow: 0 14px 20px -8px rgba(60, 35, 10, 0.45);
-      }
-      .book {
+      .card {
         all: unset;
-        flex: none;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        padding: 14px 12px 12px;
+        border-radius: 6px;
+        text-align: center;
         cursor: pointer;
+        min-width: 0;
+        transition:
+          background 0.15s,
+          box-shadow 0.15s,
+          transform 0.15s;
+      }
+      .card:hover,
+      .card:focus-visible {
+        background: #fcf6ee;
+        box-shadow: 0 3px 14px rgba(0, 0, 0, 0.16);
+        transform: translateY(-3px);
+      }
+      .cover {
         position: relative;
-        display: block;
-        border-radius: 4px 4px 0 0;
-        color: #fff;
-        box-shadow:
-          inset -6px 0 8px rgba(0, 0, 0, 0.25),
-          inset 3px 0 4px rgba(255, 255, 255, 0.12);
-        transition: transform 0.2s;
+        width: 100%;
+        aspect-ratio: 5/7;
+        border-radius: 3px;
+        background: var(--c, #a23b4a);
+        overflow: hidden;
+        box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.3);
+        margin-bottom: 10px;
       }
-      .book:hover,
-      .book:focus-visible {
-        transform: translateY(-12px);
-      }
-      .book:focus-visible {
-        outline: 3px solid #8ab4f8;
-      }
-      .book::before,
-      .book::after {
+      .cover::after {
         content: "";
         position: absolute;
-        left: 0;
-        right: 0;
-        height: 8px;
-        background: rgba(255, 255, 255, 0.4);
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.35) 0,
+          rgba(0, 0, 0, 0.18) 3%,
+          transparent 7%
+        );
       }
-      .book::before {
-        top: 14px;
-      }
-      .book::after {
-        bottom: 18px;
-      }
-      .spine {
+      .cover img {
         position: absolute;
-        inset: 34px 0;
-        writing-mode: vertical-rl;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 0 6px;
-        font-size: 14px;
-        letter-spacing: 0.06em;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
-      .spine b {
+      .ph {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px;
+        color: #fff;
         font-family: "Noto Sans Ol Chiki", Roboto, sans-serif;
-        font-size: 24px;
-        letter-spacing: 0;
+      }
+      .ph b {
+        font-size: 22px;
+      }
+      .ph span {
+        font-size: 12px;
+        font-family: Roboto, sans-serif;
+      }
+      .ct,
+      .cs {
+        display: block;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .ct {
+        font-size: 15px;
+        font-weight: 500;
+      }
+      .cs {
+        font-size: 13px;
+        color: var(--sub);
       }
       .empty {
         margin: 48px 0;
@@ -400,7 +450,7 @@
 
       @media (max-width: 719px) {
         .appbar {
-          padding: 10px 12px 0;
+          padding: 10px 12px;
         }
         .brand {
           font-size: 20px;
@@ -443,7 +493,8 @@
         }
       }
       @media (prefers-reduced-motion: reduce) {
-        .book,
+        .card,
+        .tile,
         .search {
           transition: none;
         }
@@ -468,7 +519,6 @@
           />
         </label>
       </div>
-      <nav class="chips" id="chips" aria-label="Categories"></nav>
     </header>
     <main id="shelves"></main>
 
@@ -543,7 +593,7 @@
       // Google Cloud API key with "Google Drive API" enabled.
       const DRIVE_API_KEY = "AIzaSyBAfeEO3OWZqrnGMqoYO5r9cPPcT5CLZSg";
       // Published CSV link of your Google Sheet (Share → Publish to web → pick the tab → CSV).
-      // Sheet columns (row 1 = headers): category, title, sub, author, color, w, h, driveId, pdf
+      // Sheet columns (row 1 = headers): category, title, sub, author, color, driveId, pdf, cover
       const SHEET_CSV_URL =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vTREzHC7NabWD51Mn0I_6_uZpdd-LnaCFCfl7XWJxcwpTDrrCFJF33iVedZBcGrx1f6HO97IMucQ1bw/pub?gid=0&single=true&output=csv";
       /* ========================== */
@@ -552,7 +602,6 @@
         "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
       const $ = (id) => document.getElementById(id);
       let BOOKS = [],
-        activeCat = "All",
         flip = null,
         token = 0,
         pages = [],
@@ -595,8 +644,29 @@
         }
         return rows;
       }
+      const PALETTE = [
+        "#e8892b",
+        "#d95d4f",
+        "#2a9d9f",
+        "#d63a5c",
+        "#8e5cb8",
+        "#2fa58b",
+        "#4f6bd6",
+        "#6aa832",
+      ];
+      const driveThumb = (id) =>
+        `https://drive.google.com/thumbnail?id=${id}&sz=w500`;
+      // cover: a Drive link/ID or image URL; if empty, the Drive thumbnail of the PDF's first page is used
+      function coverUrl(o) {
+        const c = o.cover,
+          m = c && c.match(/[-\w]{25,}/);
+        if (c && m && (/drive\.google\.com/.test(c) || /^[-\w]{25,}$/.test(c)))
+          return driveThumb(m[0]);
+        if (c) return c;
+        return o.driveid ? driveThumb(o.driveid) : "";
+      }
       async function loadBooks() {
-        $("shelves").innerHTML = `<p class="empty">Loading the shelves…</p>`;
+        $("shelves").innerHTML = `<p class="empty">Loading the library…</p>`;
         try {
           const res = await fetch(SHEET_CSV_URL);
           if (!res.ok) throw new Error(res.status);
@@ -613,46 +683,51 @@
                 sub: o.sub || "",
                 author: o.author || "",
                 color: o.color || "#a23b4a",
-                w: +o.w || 96,
-                h: +o.h || 400,
                 driveId: o.driveid,
                 pdf: o.pdf,
+                cover: coverUrl(o),
               };
             });
-          const cats = [...new Set(BOOKS.map((b) => b.category))];
-          renderChips(cats.length > 1 ? ["All", ...cats] : []);
           renderShelves();
         } catch (err) {
           console.error(err);
           $("shelves").innerHTML =
-            `<p class="empty">Couldn't load the shelves. Please try again later.</p>`;
+            `<p class="empty">Couldn't load the library. Please try again later.</p>`;
         }
       }
-      function renderChips(list) {
-        const nav = $("chips");
-        nav.innerHTML = "";
-        list.forEach((name) => {
-          const b = document.createElement("button");
-          b.className = "chip";
-          b.textContent = name;
-          b.setAttribute("aria-pressed", name === activeCat);
-          b.onclick = () => {
-            activeCat = name;
-            renderChips(list);
-            renderShelves();
-          };
-          nav.appendChild(b);
-        });
+      function makeCard(b) {
+        const el = document.createElement("button");
+        el.className = "card";
+        el.setAttribute("aria-label", `${b.title}, ${b.sub}`);
+        el.innerHTML = `<span class="cover"><span class="ph"><b></b><span></span></span></span><span class="ct"></span><span class="cs"></span>`;
+        const cv = el.querySelector(".cover");
+        cv.style.setProperty("--c", b.color);
+        el.querySelector(".ph b").textContent = b.title;
+        el.querySelector(".ph span").textContent = b.sub;
+        el.querySelector(".ct").textContent = b.title;
+        el.querySelector(".cs").textContent = [b.sub, b.author]
+          .filter(Boolean)
+          .join(" · ");
+        if (b.cover) {
+          const im = new Image();
+          im.alt = "";
+          im.loading = "lazy";
+          im.referrerPolicy = "no-referrer";
+          im.onerror = () => im.remove();
+          im.src = b.cover;
+          cv.appendChild(im);
+        }
+        el.onclick = () => openBook(b);
+        return el;
       }
       function renderShelves() {
         const s = $("q").value.trim().toLowerCase();
-        const list = BOOKS.filter(
-          (b) =>
-            (activeCat === "All" || b.category === activeCat) &&
-            `${b.title} ${b.sub} ${b.author} ${b.category}`
-              .toLowerCase()
-              .includes(s),
+        const list = BOOKS.filter((b) =>
+          `${b.title} ${b.sub} ${b.author} ${b.category}`
+            .toLowerCase()
+            .includes(s),
         );
+        const all = [...new Set(BOOKS.map((b) => b.category))];
         const groups = new Map();
         list.forEach((b) => {
           if (!groups.has(b.category)) groups.set(b.category, []);
@@ -664,28 +739,60 @@
           root.innerHTML = `<p class="empty">No books found.</p>`;
           return;
         }
+        if (!s && all.length > 1) {
+          const g = document.createElement("section");
+          g.className = "genres";
+          g.innerHTML = `<div class="cat-h"><h2>Books by Genre</h2></div><div class="tiles"></div>`;
+          all.forEach((name, i) => {
+            const t = document.createElement("button");
+            t.className = "tile";
+            t.innerHTML = `<span class="ti"></span><span class="tn"></span><span class="tc">Books: <b></b></span>`;
+            t.querySelector(".ti").style.background =
+              PALETTE[i % PALETTE.length];
+            t.querySelector(".ti").textContent = [...name][0].toUpperCase();
+            t.querySelector(".tn").textContent = name;
+            t.querySelector("b").textContent = BOOKS.filter(
+              (b) => b.category === name,
+            ).length;
+            t.onclick = () =>
+              document
+                .getElementById("cat-" + i)
+                .scrollIntoView({ behavior: "smooth", block: "start" });
+            g.querySelector(".tiles").appendChild(t);
+          });
+          root.appendChild(g);
+        }
         groups.forEach((books, name) => {
           const sec = document.createElement("section");
           sec.className = "cat";
-          sec.innerHTML = `<div class="cat-h"><h2></h2><span></span></div><div class="frame"><div class="inner"></div></div><div class="plank"></div><div class="base"></div>`;
+          sec.id = "cat-" + all.indexOf(name);
+          sec.innerHTML = `<div class="cat-h"><h2></h2><button class="va">View All</button></div><div class="grid"></div>`;
           sec.querySelector("h2").textContent = name;
-          sec.querySelector(".cat-h span").textContent =
-            `${books.length} book${books.length === 1 ? "" : "s"}`;
-          const inner = sec.querySelector(".inner");
-          inner.style.minHeight =
-            Math.max(...books.map((b) => b.h)) + 40 + "px";
-          books.forEach((b) => {
-            const el = document.createElement("button");
-            el.className = "book";
-            el.style.cssText = `width:${b.w}px;height:${b.h}px;background:${b.color}`;
-            el.setAttribute("aria-label", `${b.title}, ${b.sub}`);
-            el.innerHTML = `<span class="spine"><b></b><span></span></span>`;
-            el.querySelector("b").textContent = b.title;
-            el.querySelector(".spine span").textContent = b.sub;
-            el.onclick = () => openBook(b);
-            inner.appendChild(el);
-          });
+          books.forEach((b) =>
+            sec.querySelector(".grid").appendChild(makeCard(b)),
+          );
+          sec.querySelector(".va").onclick = () => {
+            sec.dataset.open = sec.dataset.open === "1" ? "" : "1";
+            applyLimits();
+          };
           root.appendChild(sec);
+        });
+        applyLimits();
+      }
+      // each category shows at most two rows; "View All" shows the rest
+      function applyLimits() {
+        const searching = !!$("q").value.trim();
+        document.querySelectorAll(".cat").forEach((sec) => {
+          const grid = sec.querySelector(".grid"),
+            btn = sec.querySelector(".va"),
+            items = [...grid.children];
+          items.forEach((i) => (i.hidden = false));
+          const max =
+            getComputedStyle(grid).gridTemplateColumns.split(" ").length * 2;
+          const open = searching || sec.dataset.open === "1";
+          btn.hidden = searching || items.length <= max;
+          btn.textContent = open ? "Show less" : "View All";
+          if (!open) items.slice(max).forEach((i) => (i.hidden = true));
         });
       }
       $("q").oninput = renderShelves;
@@ -913,6 +1020,7 @@
           if (flip && pages.length) build(cur);
         }, 250);
       });
+      addEventListener("resize", applyLimits);
       loadBooks();
     </script>
   </body>
