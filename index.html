@@ -15,6 +15,30 @@
         --line: #dadce0;
         --bg: #fff;
         --accent: #e06900;
+        --gap: 36px;
+        --n: 6;
+      }
+      @media (max-width: 1499px) {
+        :root {
+          --n: 5;
+        }
+      }
+      @media (max-width: 1199px) {
+        :root {
+          --n: 4;
+        }
+      }
+      @media (max-width: 899px) {
+        :root {
+          --n: 3;
+          --gap: 24px;
+        }
+      }
+      @media (max-width: 599px) {
+        :root {
+          --n: 2.3;
+          --gap: 14px;
+        }
       }
       * {
         box-sizing: border-box;
@@ -88,8 +112,8 @@
         display: none !important;
       }
       main {
-        padding: 8px 20px 56px;
-        max-width: 1100px;
+        padding: 8px clamp(16px, 5.2vw, 100px) 64px;
+        max-width: 1920px;
         margin: 0 auto;
       }
       .cat,
@@ -103,33 +127,110 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        margin: 0 0 14px;
+        margin: 0 0 12px;
       }
       .cat-h h2 {
         margin: 0;
-        font-size: 24px;
+        font-size: clamp(22px, 2.4vw, 36px);
         font-weight: 500;
       }
       .va {
         margin-left: auto;
-        height: 40px;
-        padding: 0 24px;
+        height: clamp(40px, 3.6vw, 64px);
+        padding: 0 clamp(20px, 2vw, 32px);
         border: 0;
-        border-radius: 20px;
+        border-radius: 999px;
         background: var(--accent);
         color: #fff;
         font: inherit;
-        font-size: 15px;
+        font-size: clamp(15px, 1.3vw, 21px);
         cursor: pointer;
       }
-      .va:hover {
-        filter: brightness(1.08);
+      .va:hover,
+      .nav:hover,
+      #top:hover {
+        filter: brightness(1.1);
       }
-      .tiles {
+
+      /* carousel */
+      .car {
+        position: relative;
+      }
+      .track {
+        display: flex;
+        gap: var(--gap);
+        overflow-x: auto;
+        padding: 14px 20px 20px;
+        margin: 0 -20px;
+        scroll-snap-type: x proximity;
+        scroll-padding-inline: 20px;
+        scrollbar-width: none;
+      }
+      .track::-webkit-scrollbar {
+        display: none;
+      }
+      .track > .card,
+      .track > .tile {
+        flex: 0 0 calc((100% - (var(--n) - 1) * var(--gap)) / var(--n));
+        scroll-snap-align: start;
+      }
+      .cat[data-open="1"] .track {
+        flex-wrap: wrap;
+        overflow: visible;
+        row-gap: 28px;
+        scroll-snap-type: none;
+      }
+      .nav {
+        position: absolute;
+        top: 38%;
+        transform: translateY(-50%);
+        z-index: 2;
+        width: 52px;
+        height: 52px;
+        border: 0;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-        gap: 14px;
+        place-items: center;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       }
+      .genres .nav {
+        top: 50%;
+      }
+      .nav.prev {
+        left: -6px;
+      }
+      .nav.next {
+        right: -6px;
+      }
+      .cat[data-open="1"] .nav {
+        display: none;
+      }
+      @media (hover: none) {
+        .nav {
+          display: none;
+        }
+      }
+      #top {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        z-index: 6;
+        width: 48px;
+        height: 48px;
+        border: 0;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      /* genre tiles */
       .tile {
         all: unset;
         box-sizing: border-box;
@@ -137,7 +238,7 @@
         flex-direction: column;
         align-items: center;
         gap: 6px;
-        padding: 18px 10px;
+        padding: 24px 10px;
         background: #fff;
         border-radius: 8px;
         box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14);
@@ -158,13 +259,13 @@
         outline: 3px solid var(--accent);
       }
       .ti {
-        width: 64px;
-        height: 64px;
-        border-radius: 14px;
+        width: 72px;
+        height: 72px;
+        border-radius: 16px;
         display: grid;
         place-items: center;
         color: #fff;
-        font-size: 28px;
+        font-size: 30px;
         font-weight: 700;
         font-family: "Noto Sans Ol Chiki", Roboto, sans-serif;
       }
@@ -173,54 +274,77 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-size: 16px;
+        font-size: clamp(15px, 1.1vw, 18px);
         font-weight: 500;
       }
       .tc {
         color: var(--sub);
-        font-size: 14px;
+        font-size: clamp(14px, 1vw, 17px);
       }
       .tc b {
         color: var(--accent);
         font-weight: 500;
       }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 12px 16px;
-      }
+
+      /* book cards */
       .card {
         all: unset;
         box-sizing: border-box;
+        position: relative;
+        isolation: isolate;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 3px;
-        padding: 14px 12px 12px;
-        border-radius: 6px;
         text-align: center;
         cursor: pointer;
         min-width: 0;
-        transition:
-          background 0.15s,
-          box-shadow 0.15s,
-          transform 0.15s;
+        transition: transform 0.2s;
       }
-      .card:hover,
-      .card:focus-visible {
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: -14px -16px -12px;
+        z-index: -1;
+        border-radius: 4px;
         background: #fcf6ee;
-        box-shadow: 0 3px 14px rgba(0, 0, 0, 0.16);
-        transform: translateY(-3px);
+        box-shadow: 0 3px 14px rgba(0, 0, 0, 0.14);
+        opacity: 0;
+        transition: opacity 0.18s;
       }
-      .cover {
+      .b3d {
+        display: block;
         position: relative;
         width: 100%;
-        aspect-ratio: 5/7;
+        aspect-ratio: 2/3;
+        perspective: 900px;
+        margin-bottom: 16px;
+      }
+      .pages {
+        position: absolute;
+        inset: 1.5% 0;
+        border-radius: 0 3px 3px 0;
+        background: linear-gradient(90deg, #f1ebe0, #fff);
+        opacity: 0;
+        transition: opacity 0.2s;
+        box-shadow:
+          3px 0 0 #fff,
+          4px 0 0 #cfc8bb,
+          7px 0 0 #fff,
+          8px 0 0 #cfc8bb,
+          11px 0 0 #fff,
+          12px 0 0 #bdb5a6;
+      }
+      .cover {
+        position: absolute;
+        inset: 0;
         border-radius: 3px;
         background: var(--c, #a23b4a);
         overflow: hidden;
         box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.3);
-        margin-bottom: 10px;
+        transform-origin: left center;
+        transition:
+          transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+          box-shadow 0.35s;
       }
       .cover::after {
         content: "";
@@ -260,6 +384,24 @@
         font-size: 12px;
         font-family: Roboto, sans-serif;
       }
+      .card:focus-visible::before {
+        opacity: 1;
+      }
+      @media (hover: hover) {
+        .card:hover {
+          transform: translateY(-3px);
+        }
+        .card:hover::before {
+          opacity: 1;
+        }
+        .card:hover .pages {
+          opacity: 1;
+        }
+        .card:hover .cover {
+          transform: rotateY(-24deg);
+          box-shadow: 10px 6px 16px rgba(0, 0, 0, 0.35);
+        }
+      }
       .ct,
       .cs {
         display: block;
@@ -269,11 +411,12 @@
         white-space: nowrap;
       }
       .ct {
-        font-size: 15px;
+        font-size: clamp(15px, 1.05vw, 17px);
         font-weight: 500;
       }
       .cs {
-        font-size: 13px;
+        margin-top: 6px;
+        font-size: clamp(13px, 0.95vw, 16px);
         color: var(--sub);
       }
       .empty {
@@ -455,9 +598,6 @@
         .brand {
           font-size: 20px;
         }
-        main {
-          padding: 4px 12px 40px;
-        }
         .bar {
           display: contents;
         }
@@ -495,7 +635,10 @@
       @media (prefers-reduced-motion: reduce) {
         .card,
         .tile,
-        .search {
+        .search,
+        .cover,
+        .pages,
+        .card::before {
           transition: none;
         }
       }
@@ -521,6 +664,11 @@
       </div>
     </header>
     <main id="shelves"></main>
+    <button id="top" hidden aria-label="Back to top">
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z" />
+      </svg>
+    </button>
 
     <div
       id="reader"
@@ -699,7 +847,7 @@
         const el = document.createElement("button");
         el.className = "card";
         el.setAttribute("aria-label", `${b.title}, ${b.sub}`);
-        el.innerHTML = `<span class="cover"><span class="ph"><b></b><span></span></span></span><span class="ct"></span><span class="cs"></span>`;
+        el.innerHTML = `<span class="b3d"><span class="pages"></span><span class="cover"><span class="ph"><b></b><span></span></span></span></span><span class="ct"></span><span class="cs"></span>`;
         const cv = el.querySelector(".cover");
         cv.style.setProperty("--c", b.color);
         el.querySelector(".ph b").textContent = b.title;
@@ -719,6 +867,33 @@
         }
         el.onclick = () => openBook(b);
         return el;
+      }
+      const ARROW = (d) =>
+        `<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="${d}"/></svg>`;
+      function makeCarousel(nodes) {
+        const car = document.createElement("div");
+        car.className = "car";
+        car.innerHTML = `<div class="track"></div>
+    <button class="nav prev" aria-label="Previous">${ARROW("M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z")}</button>
+    <button class="nav next" aria-label="Next">${ARROW("M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z")}</button>`;
+        const track = car.querySelector(".track"),
+          prev = car.querySelector(".prev"),
+          next = car.querySelector(".next");
+        nodes.forEach((n) => track.appendChild(n));
+        car._upd = () => {
+          prev.hidden = track.scrollLeft <= 2;
+          next.hidden =
+            track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+        };
+        prev.onclick = () =>
+          track.scrollBy({
+            left: -track.clientWidth * 0.9,
+            behavior: "smooth",
+          });
+        next.onclick = () =>
+          track.scrollBy({ left: track.clientWidth * 0.9, behavior: "smooth" });
+        track.addEventListener("scroll", car._upd, { passive: true });
+        return car;
       }
       function renderShelves() {
         const s = $("q").value.trim().toLowerCase();
@@ -742,8 +917,8 @@
         if (!s && all.length > 1) {
           const g = document.createElement("section");
           g.className = "genres";
-          g.innerHTML = `<div class="cat-h"><h2>Books by Genre</h2></div><div class="tiles"></div>`;
-          all.forEach((name, i) => {
+          g.innerHTML = `<div class="cat-h"><h2>Books by Genre</h2></div>`;
+          const tiles = all.map((name, i) => {
             const t = document.createElement("button");
             t.className = "tile";
             t.innerHTML = `<span class="ti"></span><span class="tn"></span><span class="tc">Books: <b></b></span>`;
@@ -758,42 +933,39 @@
               document
                 .getElementById("cat-" + i)
                 .scrollIntoView({ behavior: "smooth", block: "start" });
-            g.querySelector(".tiles").appendChild(t);
+            return t;
           });
+          g.appendChild(makeCarousel(tiles));
           root.appendChild(g);
         }
         groups.forEach((books, name) => {
           const sec = document.createElement("section");
           sec.className = "cat";
           sec.id = "cat-" + all.indexOf(name);
-          sec.innerHTML = `<div class="cat-h"><h2></h2><button class="va">View All</button></div><div class="grid"></div>`;
+          if (s) sec.dataset.open = "1"; // while searching, show every match
+          sec.innerHTML = `<div class="cat-h"><h2></h2><button class="va">View All</button></div>`;
           sec.querySelector("h2").textContent = name;
-          books.forEach((b) =>
-            sec.querySelector(".grid").appendChild(makeCard(b)),
-          );
+          sec.appendChild(makeCarousel(books.map(makeCard)));
           sec.querySelector(".va").onclick = () => {
             sec.dataset.open = sec.dataset.open === "1" ? "" : "1";
-            applyLimits();
+            updateCarousels();
           };
           root.appendChild(sec);
         });
-        applyLimits();
+        updateCarousels();
       }
-      // each category shows at most two rows; "View All" shows the rest
-      function applyLimits() {
+      // "View All" only appears when a row overflows; it turns the carousel into a full grid
+      function updateCarousels() {
         const searching = !!$("q").value.trim();
         document.querySelectorAll(".cat").forEach((sec) => {
-          const grid = sec.querySelector(".grid"),
+          const track = sec.querySelector(".track"),
             btn = sec.querySelector(".va"),
-            items = [...grid.children];
-          items.forEach((i) => (i.hidden = false));
-          const max =
-            getComputedStyle(grid).gridTemplateColumns.split(" ").length * 2;
-          const open = searching || sec.dataset.open === "1";
-          btn.hidden = searching || items.length <= max;
+            open = sec.dataset.open === "1";
           btn.textContent = open ? "Show less" : "View All";
-          if (!open) items.slice(max).forEach((i) => (i.hidden = true));
+          btn.hidden =
+            searching || (!open && track.scrollWidth <= track.clientWidth + 2);
         });
+        document.querySelectorAll(".car").forEach((c) => c._upd());
       }
       $("q").oninput = renderShelves;
 
@@ -1020,7 +1192,15 @@
           if (flip && pages.length) build(cur);
         }, 250);
       });
-      addEventListener("resize", applyLimits);
+      addEventListener("resize", updateCarousels);
+      addEventListener(
+        "scroll",
+        () => {
+          $("top").hidden = scrollY < 400;
+        },
+        { passive: true },
+      );
+      $("top").onclick = () => scrollTo({ top: 0, behavior: "smooth" });
       loadBooks();
     </script>
   </body>
