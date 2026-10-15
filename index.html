@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Magazine</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ol+Chiki:wght@700&family=Lora:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #f3e9d8;
+        --ink: #4a3b2c;
+        --wood: #5e3b1e;
+        --wood-dark: #2c1a0f;
+        --plank: #9c6b3c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: Lora, Georgia, serif;
+        min-height: 100vh;
+        padding: 40px 16px 60px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      h1 {
+        font-family: "Noto Sans Ol Chiki", Lora, serif;
+        font-size: 2rem;
+        margin: 0 0 6px;
+      }
+      .tag {
+        margin: 0 0 28px;
+        opacity: 0.75;
+      }
+      #q {
+        width: min(480px, 100%);
+        padding: 14px 22px;
+        font: inherit;
+        font-size: 1.1rem;
+        border: 1px solid var(--ink);
+        border-radius: 999px;
+        background: #faf3e6;
+        color: var(--ink);
+      }
+      #q:focus-visible {
+        outline: 3px solid var(--plank);
+        outline-offset: 2px;
+      }
+
+      /* shelf */
+      .shelf {
+        margin-top: 56px;
+        width: min(860px, 100%);
+        position: relative;
+      }
+      .frame {
+        background: var(--wood);
+        border-radius: 14px 14px 0 0;
+        padding: 22px 22px 0;
+        box-shadow: 0 30px 40px -20px rgba(60, 35, 10, 0.45);
+      }
+      .inner {
+        background: linear-gradient(#1f1209, #40291b);
+        min-height: 480px;
+        padding: 50px 32px 0;
+        display: flex;
+        align-items: flex-end;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-content: flex-end;
+        box-shadow: inset 0 14px 22px rgba(0, 0, 0, 0.5);
+      }
+      .plank {
+        height: 24px;
+        background: var(--plank);
+        margin: 0 22px;
+      }
+      .base {
+        height: 22px;
+        background: #4a2b14;
+        border-radius: 4px;
+        margin: 0 -8px;
+        box-shadow: 0 18px 26px -8px rgba(60, 35, 10, 0.5);
+      }
+      .book {
+        all: unset;
+        cursor: pointer;
+        position: relative;
+        display: block;
+        border-radius: 5px 5px 0 0;
+        color: #fff;
+        box-shadow:
+          inset -6px 0 8px rgba(0, 0, 0, 0.25),
+          inset 3px 0 4px rgba(255, 255, 255, 0.12);
+        transition: transform 0.2s;
+      }
+      .book:hover,
+      .book:focus-visible {
+        transform: translateY(-14px);
+      }
+      .book:focus-visible {
+        outline: 3px solid #fff;
+      }
+      .book::before,
+      .book::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.4);
+      }
+      .book::before {
+        top: 14px;
+      }
+      .book::after {
+        bottom: 18px;
+      }
+      .spine {
+        position: absolute;
+        inset: 34px 0 34px;
+        writing-mode: vertical-rl;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 12px;
+        padding: 0 6px;
+        font-size: 0.95rem;
+        letter-spacing: 0.06em;
+      }
+      .spine b {
+        font-family: "Noto Sans Ol Chiki", Lora, serif;
+        font-size: 1.5rem;
+        letter-spacing: 0;
+      }
+      .count {
+        margin-top: 34px;
+        opacity: 0.75;
+      }
+
+      /* reader */
+      #reader {
+        position: fixed;
+        inset: 0;
+        background: rgba(25, 15, 8, 0.94);
+        display: none;
+        flex-direction: column;
+        z-index: 10;
+      }
+      #reader.on {
+        display: flex;
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        color: #f3e9d8;
+      }
+      .bar .t {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .bar button {
+        font: inherit;
+        color: #f3e9d8;
+        background: #ffffff1f;
+        border: 0;
+        border-radius: 8px;
+        padding: 8px 14px;
+        cursor: pointer;
+      }
+      .bar button:hover {
+        background: #ffffff38;
+      }
+      #stage {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 0;
+        padding: 8px;
+      }
+      #msg {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        color: #f3e9d8;
+        text-align: center;
+        padding: 24px;
+        pointer-events: none;
+      }
+      #msg.hide {
+        display: none;
+      }
+      #prog {
+        width: 220px;
+        height: 6px;
+        border-radius: 3px;
+        background: #ffffff30;
+        overflow: hidden;
+      }
+      #prog i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--plank);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .book {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Magazine</h1>
+    <p class="tag">Pick an issue from the shelf to read it.</p>
+    <input
+      id="q"
+      type="search"
+      placeholder="Search title or author…"
+      aria-label="Search issues"
+    />
+
+    <div class="shelf">
+      <div class="frame"><div class="inner" id="books"></div></div>
+      <div class="plank"></div>
+      <div class="base"></div>
+    </div>
+    <p class="count" id="count"></p>
+
+    <div
+      id="reader"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Magazine reader"
+    >
+      <div class="bar">
+        <span class="t" id="rtitle"></span>
+        <span id="pg"></span>
+        <button id="prev" aria-label="Previous page">‹</button>
+        <button id="next" aria-label="Next page">›</button>
+        <button id="close">Close</button>
+      </div>
+      <div id="stage"></div>
+      <div id="msg" class="hide">
+        <div id="mtxt"></div>
+        <div id="prog"><i></i></div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+    <script>
+      /* ===== EDIT THIS PART ===== */
+      // Google Cloud API key with "Google Drive API" enabled (see steps in README).
+      const DRIVE_API_KEY = "AIzaSyBAfeEO3OWZqrnGMqoYO5r9cPPcT5CLZSg";
+
+      // Published CSV link of your Google Sheet (Share → Publish to web → pick the tab → CSV).
+      // Sheet columns (row 1 = headers): title, sub, author, color, w, h, driveId, pdf
+      const SHEET_CSV_URL =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vTREzHC7NabWD51Mn0I_6_uZpdd-LnaCFCfl7XWJxcwpTDrrCFJF33iVedZBcGrx1f6HO97IMucQ1bw/pub?gid=0&single=true&output=csv";
+      /* ========================== */
+
+      let BOOKS = [];
+
+      function parseCSV(text) {
+        const rows = [];
+        let row = [],
+          cell = "",
+          q = false;
+        for (let i = 0; i < text.length; i++) {
+          const c = text[i];
+          if (q) {
+            if (c === '"') {
+              if (text[i + 1] === '"') {
+                cell += '"';
+                i++;
+              } else q = false;
+            } else cell += c;
+          } else if (c === '"') q = true;
+          else if (c === ",") {
+            row.push(cell);
+            cell = "";
+          } else if (c === "\n" || c === "\r") {
+            if (c === "\r" && text[i + 1] === "\n") i++;
+            row.push(cell);
+            rows.push(row);
+            row = [];
+            cell = "";
+          } else cell += c;
+        }
+        if (cell || row.length) {
+          row.push(cell);
+          rows.push(row);
+        }
+        return rows;
+      }
+
+      async function loadBooks() {
+        $("count").textContent = "Loading the shelf…";
+        try {
+          const res = await fetch(SHEET_CSV_URL);
+          if (!res.ok) throw new Error(res.status);
+          const [head, ...rows] = parseCSV(await res.text());
+          const keys = head.map((h) => h.trim().toLowerCase());
+          BOOKS = rows
+            .filter((r) => r.some((c) => c.trim()))
+            .map((r) => {
+              const o = {};
+              keys.forEach((k, i) => (o[k] = (r[i] || "").trim()));
+              return {
+                title: o.title || "Magazine",
+                sub: o.sub,
+                author: o.author,
+                color: o.color || "#a23b4a",
+                w: +o.w || 96,
+                h: +o.h || 400,
+                driveId: o.driveid,
+                pdf: o.pdf,
+              };
+            });
+          renderShelf(BOOKS);
+        } catch (err) {
+          console.error(err);
+          $("count").textContent =
+            "Couldn't load the shelf. Please try again later.";
+        }
+      }
+
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      const $ = (id) => document.getElementById(id);
+      let flip = null,
+        token = 0;
+
+      function renderShelf(list) {
+        const box = $("books");
+        box.innerHTML = "";
+        list.forEach((b) => {
+          const el = document.createElement("button");
+          el.className = "book";
+          el.style.cssText = `width:${b.w}px;height:${b.h}px;background:${b.color}`;
+          el.setAttribute("aria-label", `${b.title}, ${b.sub}`);
+          el.innerHTML = `<span class="spine"><b></b><span></span></span>`;
+          el.querySelector("b").textContent = b.title;
+          el.querySelector(".spine span").textContent = b.sub;
+          el.onclick = () => openBook(b);
+          box.appendChild(el);
+        });
+        $("count").textContent =
+          `${list.length} book${list.length === 1 ? "" : "s"} on the shelf`;
+      }
+      $("q").oninput = (e) => {
+        const s = e.target.value.trim().toLowerCase();
+        renderShelf(
+          BOOKS.filter((b) =>
+            `${b.title} ${b.sub} ${b.author || ""}`.toLowerCase().includes(s),
+          ),
+        );
+      };
+
+      function showMsg(text, pct) {
+        $("msg").classList.remove("hide");
+        $("mtxt").innerHTML = text;
+        $("prog").style.display = pct == null ? "none" : "block";
+        if (pct != null) $("prog").firstElementChild.style.width = pct + "%";
+      }
+      function clearStage() {
+        if (flip) {
+          try {
+            flip.destroy();
+          } catch (e) {}
+          flip = null;
+        }
+        $("stage").innerHTML = "";
+        $("pg").textContent = "";
+      }
+
+      async function openBook(b) {
+        const my = ++token;
+        clearStage();
+        $("rtitle").textContent = `${b.title} — ${b.sub}`;
+        $("reader").classList.add("on");
+        showMsg("Opening the issue…", 0);
+        try {
+          const url =
+            b.pdf ||
+            `https://www.googleapis.com/drive/v3/files/${b.driveId}?alt=media&key=${DRIVE_API_KEY}`;
+          const pdf = await pdfjsLib.getDocument({ url }).promise;
+          const imgs = [];
+          let ratio = 0.7;
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const vp = page.getViewport({ scale: 1.6 });
+            if (i === 1) ratio = vp.width / vp.height;
+            const c = document.createElement("canvas");
+            c.width = vp.width;
+            c.height = vp.height;
+            await page.render({
+              canvasContext: c.getContext("2d"),
+              viewport: vp,
+            }).promise;
+            imgs.push(c.toDataURL("image/jpeg", 0.85));
+            if (my !== token) return; // reader was closed or another book opened
+            showMsg(
+              `Loading page ${i} of ${pdf.numPages}`,
+              (i / pdf.numPages) * 100,
+            );
+          }
+          const host = document.createElement("div");
+          $("stage").appendChild(host);
+          flip = new St.PageFlip(host, {
+            width: 400,
+            height: Math.round(400 / ratio),
+            size: "stretch",
+            minWidth: 260,
+            maxWidth: 700,
+            minHeight: 340,
+            maxHeight: 1100,
+            showCover: true,
+            maxShadowOpacity: 0.5,
+            mobileScrollSupport: false,
+          });
+          flip.loadFromImages(imgs);
+          const upd = () =>
+            ($("pg").textContent =
+              `${flip.getCurrentPageIndex() + 1} / ${flip.getPageCount()}`);
+          flip.on("flip", upd);
+          upd();
+          $("msg").classList.add("hide");
+        } catch (err) {
+          console.error(err);
+          showMsg("Couldn't load this issue. Please try again later.");
+        }
+      }
+      function closeReader() {
+        token++;
+        clearStage();
+        $("reader").classList.remove("on");
+      }
+      $("close").onclick = closeReader;
+      $("prev").onclick = () => flip && flip.flipPrev();
+      $("next").onclick = () => flip && flip.flipNext();
+      addEventListener("keydown", (e) => {
+        if (!$("reader").classList.contains("on")) return;
+        if (e.key === "Escape") closeReader();
+        if (e.key === "ArrowLeft" && flip) flip.flipPrev();
+        if (e.key === "ArrowRight" && flip) flip.flipNext();
+      });
+      loadBooks();
+    </script>
+  </body>
+</html>
