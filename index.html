@@ -5,94 +5,183 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Magazine</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ol+Chiki:wght@700&family=Lora:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Noto+Sans+Ol+Chiki:wght@700&display=swap"
       rel="stylesheet"
     />
     <style>
       :root {
-        --paper: #f3e9d8;
-        --ink: #4a3b2c;
+        --ink: #202124;
+        --sub: #5f6368;
+        --line: #dadce0;
+        --bg: #fff;
+        --chip: #e8f0fe;
+        --blue: #1a73e8;
         --wood: #5e3b1e;
         --plank: #9c6b3c;
       }
       * {
         box-sizing: border-box;
       }
+      html.lock,
+      html.lock body {
+        overflow: hidden;
+      }
       body {
         margin: 0;
-        background: var(--paper);
+        background: var(--bg);
         color: var(--ink);
-        font-family: Lora, Georgia, serif;
-        min-height: 100vh;
-        padding: 40px 16px 60px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        font-family: Roboto, "Noto Sans Ol Chiki", system-ui, sans-serif;
       }
-      h1 {
-        font-family: "Noto Sans Ol Chiki", Lora, serif;
-        font-size: 2rem;
-        margin: 0 0 6px;
-      }
-      .tag {
-        margin: 0 0 28px;
-        opacity: 0.75;
-      }
-      #q {
-        width: min(480px, 100%);
-        padding: 14px 22px;
-        font: inherit;
-        font-size: 1.1rem;
-        border: 1px solid var(--ink);
-        border-radius: 999px;
-        background: #faf3e6;
-        color: var(--ink);
-      }
-      #q:focus-visible {
-        outline: 3px solid var(--plank);
-        outline-offset: 2px;
+      svg {
+        display: block;
+        fill: currentColor;
       }
 
-      /* shelf */
-      .shelf {
-        margin-top: 56px;
-        width: min(860px, 100%);
+      /* app bar */
+      .appbar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: var(--bg);
+        border-bottom: 1px solid #e8eaed;
+        padding: 12px 20px 0;
+      }
+      .top {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      .brand {
+        font-size: 22px;
+        font-weight: 500;
+        font-family: "Noto Sans Ol Chiki", Roboto, sans-serif;
+      }
+      .search {
+        flex: 1;
+        min-width: 220px;
+        max-width: 680px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 48px;
+        padding: 0 16px;
+        border-radius: 24px;
+        background: #f1f3f4;
+        color: var(--sub);
+        transition:
+          background 0.15s,
+          box-shadow 0.15s;
+      }
+      .search:focus-within {
+        background: #fff;
+        box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+      }
+      #q {
+        flex: 1;
+        border: 0;
+        outline: 0;
+        background: none;
+        font: inherit;
+        font-size: 16px;
+        color: var(--ink);
+        min-width: 0;
+      }
+      .chips {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 12px 0;
+        scrollbar-width: none;
+      }
+      .chips::-webkit-scrollbar {
+        display: none;
+      }
+      .chips:empty {
+        display: none;
+      }
+      .chip {
+        flex: none;
+        height: 32px;
+        padding: 0 14px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: #fff;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--ink);
+        cursor: pointer;
+      }
+      .chip:hover {
+        background: #f6f8fc;
+      }
+      .chip[aria-pressed="true"] {
+        background: var(--chip);
+        color: #174ea6;
+        border-color: var(--chip);
+      }
+
+      /* shelves */
+      main {
+        padding: 8px 20px 56px;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      .cat {
+        margin-top: 28px;
+      }
+      .cat-h {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin: 0 4px 12px;
+      }
+      .cat-h h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 500;
+      }
+      .cat-h span {
+        color: var(--sub);
+        font-size: 14px;
       }
       .frame {
         background: var(--wood);
-        border-radius: 14px 14px 0 0;
-        padding: 22px 22px 0;
-        box-shadow: 0 30px 40px -20px rgba(60, 35, 10, 0.45);
+        border-radius: 12px 12px 0 0;
+        padding: 14px 14px 0;
+        box-shadow: 0 18px 28px -18px rgba(60, 35, 10, 0.6);
       }
       .inner {
-        background: linear-gradient(#1f1209, #40291b);
-        min-height: 480px;
-        padding: 50px 32px 0;
         display: flex;
         align-items: flex-end;
-        gap: 16px;
-        flex-wrap: wrap;
-        align-content: flex-end;
-        box-shadow: inset 0 14px 22px rgba(0, 0, 0, 0.5);
+        gap: 14px;
+        padding: 40px 22px 0;
+        background: linear-gradient(#1f1209, #40291b);
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: thin;
+        box-shadow: inset 0 12px 20px rgba(0, 0, 0, 0.5);
       }
       .plank {
-        height: 24px;
+        height: 18px;
         background: var(--plank);
-        margin: 0 22px;
+        margin: 0 14px;
       }
       .base {
-        height: 22px;
+        height: 14px;
         background: #4a2b14;
-        border-radius: 4px;
-        margin: 0 -8px;
-        box-shadow: 0 18px 26px -8px rgba(60, 35, 10, 0.5);
+        border-radius: 3px;
+        margin: 0 -6px;
+        box-shadow: 0 14px 20px -8px rgba(60, 35, 10, 0.45);
       }
       .book {
         all: unset;
+        flex: none;
         cursor: pointer;
         position: relative;
         display: block;
-        border-radius: 5px 5px 0 0;
+        border-radius: 4px 4px 0 0;
         color: #fff;
         box-shadow:
           inset -6px 0 8px rgba(0, 0, 0, 0.25),
@@ -101,10 +190,10 @@
       }
       .book:hover,
       .book:focus-visible {
-        transform: translateY(-14px);
+        transform: translateY(-12px);
       }
       .book:focus-visible {
-        outline: 3px solid #fff;
+        outline: 3px solid #8ab4f8;
       }
       .book::before,
       .book::after {
@@ -123,35 +212,38 @@
       }
       .spine {
         position: absolute;
-        inset: 34px 0 34px;
+        inset: 34px 0;
         writing-mode: vertical-rl;
         display: flex;
         align-items: center;
-        justify-content: flex-start;
         gap: 12px;
         padding: 0 6px;
-        font-size: 0.95rem;
+        font-size: 14px;
         letter-spacing: 0.06em;
       }
       .spine b {
-        font-family: "Noto Sans Ol Chiki", Lora, serif;
-        font-size: 1.5rem;
+        font-family: "Noto Sans Ol Chiki", Roboto, sans-serif;
+        font-size: 24px;
         letter-spacing: 0;
       }
-      .count {
-        margin-top: 34px;
-        opacity: 0.75;
+      .empty {
+        margin: 48px 0;
+        text-align: center;
+        color: var(--sub);
       }
 
       /* reader */
       #reader {
         position: fixed;
-        inset: 0;
-        background: rgba(25, 15, 8, 0.96);
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 100dvh;
+        background: #202124;
+        color: #e8eaed;
         display: none;
         flex-direction: column;
         z-index: 10;
-        color: #f3e9d8;
       }
       #reader.on {
         display: flex;
@@ -159,39 +251,109 @@
       .bar {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 10px 14px;
+        gap: 16px;
+        padding: 4px 12px;
       }
-      .bar .t {
-        flex: 1;
+      .titlebar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        flex: 0 1 320px;
+      }
+      .t {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        font-size: 16px;
+      }
+      .tools {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        visibility: hidden;
+      }
+      #reader.ready .tools {
+        visibility: visible;
       }
       #reader button {
         font: inherit;
-        color: #f3e9d8;
-        background: #ffffff1f;
+        color: inherit;
+        background: none;
         border: 0;
-        border-radius: 8px;
-        min-width: 40px;
+        border-radius: 50%;
+        width: 40px;
         height: 40px;
-        padding: 0 14px;
+        display: grid;
+        place-items: center;
         cursor: pointer;
+        flex: none;
       }
       #reader button:hover:not(:disabled) {
-        background: #ffffff38;
+        background: #ffffff1f;
       }
       #reader button:disabled {
         opacity: 0.35;
         cursor: default;
       }
+      #reader button:focus-visible,
+      #goto:focus-visible {
+        outline: 2px solid #8ab4f8;
+      }
+      #reader .pill {
+        width: auto;
+        border-radius: 20px;
+        padding: 0 14px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #8ab4f8;
+      }
+      #seek {
+        flex: 1;
+        min-width: 60px;
+        accent-color: #8ab4f8;
+        margin: 0 8px;
+      }
+      .go {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      #goto {
+        width: 52px;
+        height: 32px;
+        font: inherit;
+        text-align: center;
+        border-radius: 8px;
+        border: 1px solid #5f6368;
+        background: #303134;
+        color: #e8eaed;
+      }
+      .zoom {
+        display: flex;
+        align-items: center;
+      }
       #stage {
         flex: 1;
-        display: flex;
         min-height: 0;
+        display: flex;
+        overflow: hidden;
+        padding: 4px;
+      }
+      #stage.zoomed {
         overflow: auto;
-        padding: 8px;
+        scrollbar-width: thin;
+        cursor: grab;
+      }
+      #stage.zoomed.grabbing {
+        cursor: grabbing;
+      }
+      #stage.zoomed * {
+        touch-action: pan-x pan-y pinch-zoom !important;
       }
       .flip {
         margin: auto;
@@ -224,8 +386,8 @@
       }
       #prog {
         width: 220px;
-        height: 6px;
-        border-radius: 3px;
+        height: 4px;
+        border-radius: 2px;
         background: #ffffff30;
         overflow: hidden;
       }
@@ -233,73 +395,82 @@
         display: block;
         height: 100%;
         width: 0;
-        background: var(--plank);
+        background: #8ab4f8;
       }
-      .tools {
-        display: none;
-        padding: 8px 14px calc(12px + env(safe-area-inset-bottom, 0px));
-        background: #0000004d;
-      }
-      #reader.ready .tools {
-        display: block;
-      }
-      #seek {
-        width: 100%;
-        accent-color: var(--plank);
-        margin: 0 0 8px;
-      }
-      .row {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-      .go {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      #goto {
-        width: 64px;
-        height: 40px;
-        font: inherit;
-        text-align: center;
-        border-radius: 8px;
-        border: 0;
-        background: #faf3e6;
-        color: var(--ink);
-      }
-      .zoom {
-        display: flex;
-        gap: 4px;
-      }
-      #zval {
-        min-width: 64px;
+
+      @media (max-width: 719px) {
+        .appbar {
+          padding: 10px 12px 0;
+        }
+        .brand {
+          font-size: 20px;
+        }
+        main {
+          padding: 4px 12px 40px;
+        }
+        .bar {
+          display: contents;
+        }
+        .titlebar {
+          order: 0;
+          padding: 4px 8px;
+          flex: none;
+        }
+        #stage {
+          order: 1;
+        }
+        .tools {
+          order: 2;
+          flex: none;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 4px 6px;
+          padding: 0 8px calc(8px + env(safe-area-inset-bottom, 0px));
+        }
+        #seek {
+          order: -1;
+          flex: none;
+          width: 100%;
+          margin: 0;
+        }
+        #reader button {
+          width: 36px;
+          height: 36px;
+        }
+        .pl,
+        #zval {
+          display: none;
+        }
       }
       @media (prefers-reduced-motion: reduce) {
-        .book {
+        .book,
+        .search {
           transition: none;
         }
       }
     </style>
   </head>
   <body>
-    <h1>Magazine</h1>
-    <p class="tag">Pick an issue from the shelf to read it.</p>
-    <input
-      id="q"
-      type="search"
-      placeholder="Search title or author…"
-      aria-label="Search issues"
-    />
-
-    <div class="shelf">
-      <div class="frame"><div class="inner" id="books"></div></div>
-      <div class="plank"></div>
-      <div class="base"></div>
-    </div>
-    <p class="count" id="count"></p>
+    <header class="appbar">
+      <div class="top">
+        <div class="brand">Magazine</div>
+        <label class="search">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path
+              d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+            />
+          </svg>
+          <input
+            id="q"
+            type="search"
+            placeholder="Search title or author"
+            aria-label="Search issues"
+          />
+        </label>
+      </div>
+      <nav class="chips" id="chips" aria-label="Categories"></nav>
+    </header>
+    <main id="shelves"></main>
 
     <div
       id="reader"
@@ -307,37 +478,61 @@
       aria-modal="true"
       aria-label="Magazine reader"
     >
-      <div class="bar">
-        <span class="t" id="rtitle"></span><button id="close">Close</button>
-      </div>
+      <header class="bar">
+        <div class="titlebar">
+          <button id="close" aria-label="Back">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path
+                d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+              />
+            </svg>
+          </button>
+          <span class="t" id="rtitle"></span>
+        </div>
+        <div class="tools">
+          <input
+            type="range"
+            id="seek"
+            min="1"
+            max="1"
+            value="1"
+            aria-label="Reading progress"
+          />
+          <button id="prev" aria-label="Previous page">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+            </svg>
+          </button>
+          <label class="go"
+            ><span class="pl">Page</span
+            ><input id="goto" type="number" min="1" inputmode="numeric" /> /
+            <span id="total">0</span></label
+          >
+          <button id="gobtn" class="pill">Go</button>
+          <button id="next" aria-label="Next page">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+            </svg>
+          </button>
+          <span class="zoom">
+            <button id="zout" aria-label="Zoom out">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <path d="M19 13H5v-2h14v2z" />
+              </svg>
+            </button>
+            <button id="zval" class="pill" aria-label="Reset zoom">100%</button>
+            <button id="zin" aria-label="Zoom in">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+              </svg>
+            </button>
+          </span>
+        </div>
+      </header>
       <div id="stage"></div>
       <div id="msg" class="hide">
         <div id="mtxt"></div>
         <div id="prog"><i></i></div>
-      </div>
-      <div class="tools">
-        <input
-          type="range"
-          id="seek"
-          min="1"
-          max="1"
-          value="1"
-          aria-label="Reading progress"
-        />
-        <div class="row">
-          <button id="prev" aria-label="Previous page">‹</button>
-          <label class="go"
-            >Page
-            <input id="goto" type="number" min="1" inputmode="numeric" /> /
-            <span id="total">0</span> <button id="gobtn">Go</button></label
-          >
-          <span class="zoom">
-            <button id="zout" aria-label="Zoom out">−</button>
-            <button id="zval" aria-label="Reset zoom">100%</button>
-            <button id="zin" aria-label="Zoom in">+</button>
-          </span>
-          <button id="next" aria-label="Next page">›</button>
-        </div>
       </div>
     </div>
 
@@ -348,7 +543,7 @@
       // Google Cloud API key with "Google Drive API" enabled.
       const DRIVE_API_KEY = "AIzaSyBAfeEO3OWZqrnGMqoYO5r9cPPcT5CLZSg";
       // Published CSV link of your Google Sheet (Share → Publish to web → pick the tab → CSV).
-      // Sheet columns (row 1 = headers): title, sub, author, color, w, h, driveId, pdf
+      // Sheet columns (row 1 = headers): category, title, sub, author, color, w, h, driveId, pdf
       const SHEET_CSV_URL =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vTREzHC7NabWD51Mn0I_6_uZpdd-LnaCFCfl7XWJxcwpTDrrCFJF33iVedZBcGrx1f6HO97IMucQ1bw/pub?gid=0&single=true&output=csv";
       /* ========================== */
@@ -357,15 +552,17 @@
         "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
       const $ = (id) => document.getElementById(id);
       let BOOKS = [],
+        activeCat = "All",
         flip = null,
         token = 0,
         pages = [],
         ratio = 0.7,
         zoom = 1,
         cur = 0;
-      const ZOOMS = [1, 1.5, 2, 3];
+      const ZOOMS = [1, 1.5, 2, 3],
+        PAD = 8;
 
-      /* ---------- shelf ---------- */
+      /* ---------- shelves ---------- */
       function parseCSV(text) {
         const rows = [];
         let row = [],
@@ -399,7 +596,7 @@
         return rows;
       }
       async function loadBooks() {
-        $("count").textContent = "Loading the shelf…";
+        $("shelves").innerHTML = `<p class="empty">Loading the shelves…</p>`;
         try {
           const res = await fetch(SHEET_CSV_URL);
           if (!res.ok) throw new Error(res.status);
@@ -411,9 +608,10 @@
               const o = {};
               keys.forEach((k, i) => (o[k] = (r[i] || "").trim()));
               return {
+                category: o.category || "Library",
                 title: o.title || "Magazine",
-                sub: o.sub,
-                author: o.author,
+                sub: o.sub || "",
+                author: o.author || "",
                 color: o.color || "#a23b4a",
                 w: +o.w || 96,
                 h: +o.h || 400,
@@ -421,38 +619,76 @@
                 pdf: o.pdf,
               };
             });
-          renderShelf(BOOKS);
+          const cats = [...new Set(BOOKS.map((b) => b.category))];
+          renderChips(cats.length > 1 ? ["All", ...cats] : []);
+          renderShelves();
         } catch (err) {
           console.error(err);
-          $("count").textContent =
-            "Couldn't load the shelf. Please try again later.";
+          $("shelves").innerHTML =
+            `<p class="empty">Couldn't load the shelves. Please try again later.</p>`;
         }
       }
-      function renderShelf(list) {
-        const box = $("books");
-        box.innerHTML = "";
-        list.forEach((b) => {
-          const el = document.createElement("button");
-          el.className = "book";
-          el.style.cssText = `width:${b.w}px;height:${b.h}px;background:${b.color}`;
-          el.setAttribute("aria-label", `${b.title}, ${b.sub}`);
-          el.innerHTML = `<span class="spine"><b></b><span></span></span>`;
-          el.querySelector("b").textContent = b.title;
-          el.querySelector(".spine span").textContent = b.sub;
-          el.onclick = () => openBook(b);
-          box.appendChild(el);
+      function renderChips(list) {
+        const nav = $("chips");
+        nav.innerHTML = "";
+        list.forEach((name) => {
+          const b = document.createElement("button");
+          b.className = "chip";
+          b.textContent = name;
+          b.setAttribute("aria-pressed", name === activeCat);
+          b.onclick = () => {
+            activeCat = name;
+            renderChips(list);
+            renderShelves();
+          };
+          nav.appendChild(b);
         });
-        $("count").textContent =
-          `${list.length} book${list.length === 1 ? "" : "s"} on the shelf`;
       }
-      $("q").oninput = (e) => {
-        const s = e.target.value.trim().toLowerCase();
-        renderShelf(
-          BOOKS.filter((b) =>
-            `${b.title} ${b.sub} ${b.author || ""}`.toLowerCase().includes(s),
-          ),
+      function renderShelves() {
+        const s = $("q").value.trim().toLowerCase();
+        const list = BOOKS.filter(
+          (b) =>
+            (activeCat === "All" || b.category === activeCat) &&
+            `${b.title} ${b.sub} ${b.author} ${b.category}`
+              .toLowerCase()
+              .includes(s),
         );
-      };
+        const groups = new Map();
+        list.forEach((b) => {
+          if (!groups.has(b.category)) groups.set(b.category, []);
+          groups.get(b.category).push(b);
+        });
+        const root = $("shelves");
+        root.innerHTML = "";
+        if (!groups.size) {
+          root.innerHTML = `<p class="empty">No books found.</p>`;
+          return;
+        }
+        groups.forEach((books, name) => {
+          const sec = document.createElement("section");
+          sec.className = "cat";
+          sec.innerHTML = `<div class="cat-h"><h2></h2><span></span></div><div class="frame"><div class="inner"></div></div><div class="plank"></div><div class="base"></div>`;
+          sec.querySelector("h2").textContent = name;
+          sec.querySelector(".cat-h span").textContent =
+            `${books.length} book${books.length === 1 ? "" : "s"}`;
+          const inner = sec.querySelector(".inner");
+          inner.style.minHeight =
+            Math.max(...books.map((b) => b.h)) + 40 + "px";
+          books.forEach((b) => {
+            const el = document.createElement("button");
+            el.className = "book";
+            el.style.cssText = `width:${b.w}px;height:${b.h}px;background:${b.color}`;
+            el.setAttribute("aria-label", `${b.title}, ${b.sub}`);
+            el.innerHTML = `<span class="spine"><b></b><span></span></span>`;
+            el.querySelector("b").textContent = b.title;
+            el.querySelector(".spine span").textContent = b.sub;
+            el.onclick = () => openBook(b);
+            inner.appendChild(el);
+          });
+          root.appendChild(sec);
+        });
+      }
+      $("q").oninput = renderShelves;
 
       /* ---------- reader ---------- */
       function showMsg(text, pct) {
@@ -475,22 +711,24 @@
         pages = [];
       }
 
-      // width (CSS px) of one page when the whole spread fits the screen at 100%
+      // width of one page when the whole book fits the stage exactly (no scrollbars)
       function fitWidth() {
         const st = $("stage"),
-          W = st.clientWidth - 16,
-          H = st.clientHeight - 16;
+          W = st.clientWidth - PAD,
+          H = st.clientHeight - PAD;
         return Math.min(W < 720 ? W : W / 2, H * ratio);
       }
       function build(start) {
         destroyFlip();
-        const portrait = $("stage").clientWidth - 16 < 720;
+        const st = $("stage"),
+          portrait = st.clientWidth - PAD < 720;
         const pw = Math.floor(fitWidth() * zoom),
           ph = Math.floor(pw / ratio);
+        st.classList.toggle("zoomed", zoom > 1);
         const host = document.createElement("div");
         host.className = "flip";
         host.style.cssText = `width:${portrait ? pw : pw * 2}px;height:${ph}px`;
-        $("stage").appendChild(host);
+        st.appendChild(host);
         pages.forEach((u, i) => {
           const d = document.createElement("div");
           d.className = "page";
@@ -512,8 +750,9 @@
           maxHeight: ph * 1.5,
           showCover: true,
           maxShadowOpacity: 0.5,
-          mobileScrollSupport: true,
           usePortrait: true,
+          mobileScrollSupport: true,
+          useMouseEvents: zoom === 1, // when zoomed, swiping/dragging scrolls instead of flipping
         });
         flip.loadFromHTML(host.querySelectorAll(".page"));
         if (start > 0) flip.turnToPage(start);
@@ -551,6 +790,7 @@
         freePages();
         zoom = 1;
         cur = 0;
+        document.documentElement.classList.add("lock");
         $("reader").classList.remove("ready");
         $("reader").classList.add("on");
         $("rtitle").textContent = `${b.title} — ${b.sub}`;
@@ -566,8 +806,8 @@
           // render big enough to stay sharp on retina screens and at 300% zoom
           const dpr = Math.min(window.devicePixelRatio || 1, 3);
           const cap = innerWidth < 720 ? 1800 : 2400;
-          const target = Math.min(cap, Math.max(1400, fitWidth() * dpr * 2.5));
-          const scale = target / v0.width;
+          const scale =
+            Math.min(cap, Math.max(1400, fitWidth() * dpr * 2.5)) / v0.width;
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const vp = page.getViewport({ scale });
@@ -610,6 +850,7 @@
         destroyFlip();
         freePages();
         $("reader").classList.remove("on", "ready");
+        document.documentElement.classList.remove("lock");
       }
 
       $("close").onclick = closeReader;
@@ -628,12 +869,42 @@
         $("goto").value = e.target.value;
       };
       $("seek").onchange = (e) => goTo(e.target.value);
+
+      // mouse drag to pan when zoomed (touch uses native scrolling)
+      let drag = null;
+      const stage = $("stage");
+      stage.addEventListener("pointerdown", (e) => {
+        if (zoom <= 1 || e.pointerType !== "mouse" || e.button !== 0) return;
+        drag = {
+          x: e.clientX,
+          y: e.clientY,
+          l: stage.scrollLeft,
+          t: stage.scrollTop,
+        };
+        stage.setPointerCapture(e.pointerId);
+        stage.classList.add("grabbing");
+      });
+      stage.addEventListener("pointermove", (e) => {
+        if (!drag) return;
+        stage.scrollLeft = drag.l - (e.clientX - drag.x);
+        stage.scrollTop = drag.t - (e.clientY - drag.y);
+      });
+      ["pointerup", "pointercancel"].forEach((t) =>
+        stage.addEventListener(t, () => {
+          drag = null;
+          stage.classList.remove("grabbing");
+        }),
+      );
+
       addEventListener("keydown", (e) => {
         if (!$("reader").classList.contains("on")) return;
         if (e.key === "Escape") return closeReader();
         if (e.target.tagName === "INPUT") return;
         if (e.key === "ArrowLeft" && flip) flip.flipPrev();
         if (e.key === "ArrowRight" && flip) flip.flipNext();
+        if ((e.key === "+" || e.key === "=") && !$("zin").disabled)
+          $("zin").click();
+        if (e.key === "-" && !$("zout").disabled) $("zout").click();
       });
       let rz;
       addEventListener("resize", () => {
