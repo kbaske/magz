@@ -13,7 +13,6 @@
         --paper: #f3e9d8;
         --ink: #4a3b2c;
         --wood: #5e3b1e;
-        --wood-dark: #2c1a0f;
         --plank: #9c6b3c;
       }
       * {
@@ -58,7 +57,6 @@
       .shelf {
         margin-top: 56px;
         width: min(860px, 100%);
-        position: relative;
       }
       .frame {
         background: var(--wood);
@@ -149,10 +147,11 @@
       #reader {
         position: fixed;
         inset: 0;
-        background: rgba(25, 15, 8, 0.94);
+        background: rgba(25, 15, 8, 0.96);
         display: none;
         flex-direction: column;
         z-index: 10;
+        color: #f3e9d8;
       }
       #reader.on {
         display: flex;
@@ -162,7 +161,6 @@
         align-items: center;
         gap: 10px;
         padding: 10px 14px;
-        color: #f3e9d8;
       }
       .bar .t {
         flex: 1;
@@ -170,25 +168,44 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .bar button {
+      #reader button {
         font: inherit;
         color: #f3e9d8;
         background: #ffffff1f;
         border: 0;
         border-radius: 8px;
-        padding: 8px 14px;
+        min-width: 40px;
+        height: 40px;
+        padding: 0 14px;
         cursor: pointer;
       }
-      .bar button:hover {
+      #reader button:hover:not(:disabled) {
         background: #ffffff38;
+      }
+      #reader button:disabled {
+        opacity: 0.35;
+        cursor: default;
       }
       #stage {
         flex: 1;
         display: flex;
-        align-items: center;
-        justify-content: center;
         min-height: 0;
+        overflow: auto;
         padding: 8px;
+      }
+      .flip {
+        margin: auto;
+        flex: none;
+      }
+      .page {
+        background: #fff;
+      }
+      .page img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        user-select: none;
+        -webkit-user-drag: none;
       }
       #msg {
         position: absolute;
@@ -198,7 +215,6 @@
         align-items: center;
         justify-content: center;
         gap: 12px;
-        color: #f3e9d8;
         text-align: center;
         padding: 24px;
         pointer-events: none;
@@ -218,6 +234,48 @@
         height: 100%;
         width: 0;
         background: var(--plank);
+      }
+      .tools {
+        display: none;
+        padding: 8px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+        background: #0000004d;
+      }
+      #reader.ready .tools {
+        display: block;
+      }
+      #seek {
+        width: 100%;
+        accent-color: var(--plank);
+        margin: 0 0 8px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .go {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      #goto {
+        width: 64px;
+        height: 40px;
+        font: inherit;
+        text-align: center;
+        border-radius: 8px;
+        border: 0;
+        background: #faf3e6;
+        color: var(--ink);
+      }
+      .zoom {
+        display: flex;
+        gap: 4px;
+      }
+      #zval {
+        min-width: 64px;
       }
       @media (prefers-reduced-motion: reduce) {
         .book {
@@ -250,16 +308,36 @@
       aria-label="Magazine reader"
     >
       <div class="bar">
-        <span class="t" id="rtitle"></span>
-        <span id="pg"></span>
-        <button id="prev" aria-label="Previous page">‹</button>
-        <button id="next" aria-label="Next page">›</button>
-        <button id="close">Close</button>
+        <span class="t" id="rtitle"></span><button id="close">Close</button>
       </div>
       <div id="stage"></div>
       <div id="msg" class="hide">
         <div id="mtxt"></div>
         <div id="prog"><i></i></div>
+      </div>
+      <div class="tools">
+        <input
+          type="range"
+          id="seek"
+          min="1"
+          max="1"
+          value="1"
+          aria-label="Reading progress"
+        />
+        <div class="row">
+          <button id="prev" aria-label="Previous page">‹</button>
+          <label class="go"
+            >Page
+            <input id="goto" type="number" min="1" inputmode="numeric" /> /
+            <span id="total">0</span> <button id="gobtn">Go</button></label
+          >
+          <span class="zoom">
+            <button id="zout" aria-label="Zoom out">−</button>
+            <button id="zval" aria-label="Reset zoom">100%</button>
+            <button id="zin" aria-label="Zoom in">+</button>
+          </span>
+          <button id="next" aria-label="Next page">›</button>
+        </div>
       </div>
     </div>
 
@@ -267,17 +345,27 @@
     <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
     <script>
       /* ===== EDIT THIS PART ===== */
-      // Google Cloud API key with "Google Drive API" enabled (see steps in README).
+      // Google Cloud API key with "Google Drive API" enabled.
       const DRIVE_API_KEY = "AIzaSyBAfeEO3OWZqrnGMqoYO5r9cPPcT5CLZSg";
-
       // Published CSV link of your Google Sheet (Share → Publish to web → pick the tab → CSV).
       // Sheet columns (row 1 = headers): title, sub, author, color, w, h, driveId, pdf
       const SHEET_CSV_URL =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vTREzHC7NabWD51Mn0I_6_uZpdd-LnaCFCfl7XWJxcwpTDrrCFJF33iVedZBcGrx1f6HO97IMucQ1bw/pub?gid=0&single=true&output=csv";
       /* ========================== */
 
-      let BOOKS = [];
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      const $ = (id) => document.getElementById(id);
+      let BOOKS = [],
+        flip = null,
+        token = 0,
+        pages = [],
+        ratio = 0.7,
+        zoom = 1,
+        cur = 0;
+      const ZOOMS = [1, 1.5, 2, 3];
 
+      /* ---------- shelf ---------- */
       function parseCSV(text) {
         const rows = [];
         let row = [],
@@ -310,7 +398,6 @@
         }
         return rows;
       }
-
       async function loadBooks() {
         $("count").textContent = "Loading the shelf…";
         try {
@@ -341,13 +428,6 @@
             "Couldn't load the shelf. Please try again later.";
         }
       }
-
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      const $ = (id) => document.getElementById(id);
-      let flip = null,
-        token = 0;
-
       function renderShelf(list) {
         const box = $("books");
         box.innerHTML = "";
@@ -374,13 +454,14 @@
         );
       };
 
+      /* ---------- reader ---------- */
       function showMsg(text, pct) {
         $("msg").classList.remove("hide");
-        $("mtxt").innerHTML = text;
+        $("mtxt").textContent = text;
         $("prog").style.display = pct == null ? "none" : "block";
         if (pct != null) $("prog").firstElementChild.style.width = pct + "%";
       }
-      function clearStage() {
+      function destroyFlip() {
         if (flip) {
           try {
             flip.destroy();
@@ -388,26 +469,108 @@
           flip = null;
         }
         $("stage").innerHTML = "";
-        $("pg").textContent = "";
+      }
+      function freePages() {
+        pages.forEach((u) => URL.revokeObjectURL(u));
+        pages = [];
+      }
+
+      // width (CSS px) of one page when the whole spread fits the screen at 100%
+      function fitWidth() {
+        const st = $("stage"),
+          W = st.clientWidth - 16,
+          H = st.clientHeight - 16;
+        return Math.min(W < 720 ? W : W / 2, H * ratio);
+      }
+      function build(start) {
+        destroyFlip();
+        const portrait = $("stage").clientWidth - 16 < 720;
+        const pw = Math.floor(fitWidth() * zoom),
+          ph = Math.floor(pw / ratio);
+        const host = document.createElement("div");
+        host.className = "flip";
+        host.style.cssText = `width:${portrait ? pw : pw * 2}px;height:${ph}px`;
+        $("stage").appendChild(host);
+        pages.forEach((u, i) => {
+          const d = document.createElement("div");
+          d.className = "page";
+          if (i === 0 || i === pages.length - 1) d.dataset.density = "hard";
+          const im = new Image();
+          im.src = u;
+          im.alt = `Page ${i + 1}`;
+          im.draggable = false;
+          d.appendChild(im);
+          host.appendChild(d);
+        });
+        flip = new St.PageFlip(host, {
+          width: pw,
+          height: ph,
+          size: "stretch",
+          minWidth: pw * 0.9,
+          maxWidth: pw * 1.5,
+          minHeight: ph * 0.5,
+          maxHeight: ph * 1.5,
+          showCover: true,
+          maxShadowOpacity: 0.5,
+          mobileScrollSupport: true,
+          usePortrait: true,
+        });
+        flip.loadFromHTML(host.querySelectorAll(".page"));
+        if (start > 0) flip.turnToPage(start);
+        flip.on("flip", (e) => {
+          cur = e.data;
+          updateUI();
+        });
+        updateUI();
+      }
+      function updateUI() {
+        if (!flip) return;
+        cur = Math.min(flip.getCurrentPageIndex(), pages.length - 1);
+        $("seek").value = cur + 1;
+        $("goto").value = cur + 1;
+        $("prev").disabled = cur <= 0;
+        $("next").disabled = cur >= pages.length - 1;
+        $("zval").textContent = Math.round(zoom * 100) + "%";
+        $("zout").disabled = zoom <= ZOOMS[0];
+        $("zin").disabled = zoom >= ZOOMS[ZOOMS.length - 1];
+      }
+      function goTo(n) {
+        if (!flip) return;
+        n = Math.max(1, Math.min(pages.length, parseInt(n, 10) || 1));
+        flip.turnToPage(n - 1);
+        updateUI();
+      }
+      function setZoom(z) {
+        zoom = z;
+        build(cur);
       }
 
       async function openBook(b) {
         const my = ++token;
-        clearStage();
-        $("rtitle").textContent = `${b.title} — ${b.sub}`;
+        destroyFlip();
+        freePages();
+        zoom = 1;
+        cur = 0;
+        $("reader").classList.remove("ready");
         $("reader").classList.add("on");
+        $("rtitle").textContent = `${b.title} — ${b.sub}`;
         showMsg("Opening the issue…", 0);
+        const tmp = [];
         try {
           const url =
             b.pdf ||
             `https://www.googleapis.com/drive/v3/files/${b.driveId}?alt=media&key=${DRIVE_API_KEY}`;
           const pdf = await pdfjsLib.getDocument({ url }).promise;
-          const imgs = [];
-          let ratio = 0.7;
+          const v0 = (await pdf.getPage(1)).getViewport({ scale: 1 });
+          ratio = v0.width / v0.height;
+          // render big enough to stay sharp on retina screens and at 300% zoom
+          const dpr = Math.min(window.devicePixelRatio || 1, 3);
+          const cap = innerWidth < 720 ? 1800 : 2400;
+          const target = Math.min(cap, Math.max(1400, fitWidth() * dpr * 2.5));
+          const scale = target / v0.width;
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
-            const vp = page.getViewport({ scale: 1.6 });
-            if (i === 1) ratio = vp.width / vp.height;
+            const vp = page.getViewport({ scale });
             const c = document.createElement("canvas");
             c.width = vp.width;
             c.height = vp.height;
@@ -415,52 +578,69 @@
               canvasContext: c.getContext("2d"),
               viewport: vp,
             }).promise;
-            imgs.push(c.toDataURL("image/jpeg", 0.85));
-            if (my !== token) return; // reader was closed or another book opened
+            const blob = await new Promise((r) =>
+              c.toBlob(r, "image/jpeg", 0.92),
+            );
+            c.width = c.height = 0;
+            tmp.push(URL.createObjectURL(blob));
+            if (my !== token) {
+              tmp.forEach((u) => URL.revokeObjectURL(u));
+              return;
+            }
             showMsg(
               `Loading page ${i} of ${pdf.numPages}`,
               (i / pdf.numPages) * 100,
             );
           }
-          const host = document.createElement("div");
-          $("stage").appendChild(host);
-          flip = new St.PageFlip(host, {
-            width: 400,
-            height: Math.round(400 / ratio),
-            size: "stretch",
-            minWidth: 260,
-            maxWidth: 700,
-            minHeight: 340,
-            maxHeight: 1100,
-            showCover: true,
-            maxShadowOpacity: 0.5,
-            mobileScrollSupport: false,
-          });
-          flip.loadFromImages(imgs);
-          const upd = () =>
-            ($("pg").textContent =
-              `${flip.getCurrentPageIndex() + 1} / ${flip.getPageCount()}`);
-          flip.on("flip", upd);
-          upd();
+          pages = tmp;
+          $("seek").max = pages.length;
+          $("goto").max = pages.length;
+          $("total").textContent = pages.length;
           $("msg").classList.add("hide");
+          $("reader").classList.add("ready");
+          build(0);
         } catch (err) {
           console.error(err);
+          tmp.forEach((u) => URL.revokeObjectURL(u));
           showMsg("Couldn't load this issue. Please try again later.");
         }
       }
       function closeReader() {
         token++;
-        clearStage();
-        $("reader").classList.remove("on");
+        destroyFlip();
+        freePages();
+        $("reader").classList.remove("on", "ready");
       }
+
       $("close").onclick = closeReader;
       $("prev").onclick = () => flip && flip.flipPrev();
       $("next").onclick = () => flip && flip.flipNext();
+      $("zin").onclick = () =>
+        setZoom(ZOOMS[Math.min(ZOOMS.indexOf(zoom) + 1, ZOOMS.length - 1)]);
+      $("zout").onclick = () =>
+        setZoom(ZOOMS[Math.max(ZOOMS.indexOf(zoom) - 1, 0)]);
+      $("zval").onclick = () => setZoom(1);
+      $("gobtn").onclick = () => goTo($("goto").value);
+      $("goto").onkeydown = (e) => {
+        if (e.key === "Enter") goTo(e.target.value);
+      };
+      $("seek").oninput = (e) => {
+        $("goto").value = e.target.value;
+      };
+      $("seek").onchange = (e) => goTo(e.target.value);
       addEventListener("keydown", (e) => {
         if (!$("reader").classList.contains("on")) return;
-        if (e.key === "Escape") closeReader();
+        if (e.key === "Escape") return closeReader();
+        if (e.target.tagName === "INPUT") return;
         if (e.key === "ArrowLeft" && flip) flip.flipPrev();
         if (e.key === "ArrowRight" && flip) flip.flipNext();
+      });
+      let rz;
+      addEventListener("resize", () => {
+        clearTimeout(rz);
+        rz = setTimeout(() => {
+          if (flip && pages.length) build(cur);
+        }, 250);
       });
       loadBooks();
     </script>
