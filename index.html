@@ -39,6 +39,9 @@
           --n: 2.3;
           --gap: 14px;
         }
+        .cat[data-open="1"] {
+          --n: 2;
+        }
       }
       * {
         box-sizing: border-box;
@@ -554,6 +557,48 @@
       }
       .page {
         background: #fff;
+        position: relative;
+      }
+      .spin {
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 30px;
+        height: 30px;
+        border: 3px solid #e0e0e0;
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: sp 1s linear infinite;
+      }
+      @keyframes sp {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .fail {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 12px;
+        text-align: center;
+        font-size: 14px;
+        color: #5f6368;
+      }
+      #bg {
+        height: 3px;
+        flex: none;
+        background: #ffffff1a;
+      }
+      #bg.done {
+        visibility: hidden;
+      }
+      #bg i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+        transition: width 0.2s;
       }
       .page img {
         width: 100%;
@@ -727,6 +772,7 @@
           </span>
         </div>
       </header>
+      <div id="bg" class="done"><i></i></div>
       <div id="stage"></div>
       <div id="msg" class="hide">
         <div id="mtxt"></div>
@@ -753,6 +799,7 @@
         flip = null,
         token = 0,
         pages = [],
+        pageEls = [],
         ratio = 0.7,
         zoom = 1,
         cur = 0;
@@ -843,6 +890,89 @@
             `<p class="empty">Couldn't load the library. Please try again later.</p>`;
         }
       }
+      /* ---------- 2-hour cache (Cache Storage) ---------- */
+      const TTL = 2 * 60 * 60 * 1000,
+        CACHE = "magazine-v1";
+      async function cacheGet(key) {
+        try {
+          const c = await caches.open(CACHE),
+            r = await c.match(key);
+          if (!r) return null;
+          if (Date.now() - (+r.headers.get("x-cached-at") || 0) > TTL) {
+            c.delete(key);
+            return null;
+          }
+          return await r.blob();
+        } catch (e) {
+          return null;
+        }
+      }
+      async function cachePut(key, blob) {
+        try {
+          const c = await caches.open(CACHE);
+          await c.put(
+            key,
+            new Response(blob, {
+              headers: {
+                "x-cached-at": String(Date.now()),
+                "content-type": blob.type || "image/jpeg",
+              },
+            }),
+          );
+        } catch (e) {}
+      }
+      const metaKey = (id, w) => `mag:${id}:${w}`;
+      function readMeta(k) {
+        try {
+          const m = JSON.parse(localStorage.getItem(k));
+          return m && Date.now() - m.t < TTL ? m : null;
+        } catch (e) {
+          return null;
+        }
+      }
+      function writeMeta(k, m) {
+        try {
+          localStorage.setItem(k, JSON.stringify({ ...m, t: Date.now() }));
+        } catch (e) {}
+      }
+      const pageKey = (id, w, i) =>
+        `https://cache.local/p/${encodeURIComponent(id)}/${w}/${i}`;
+
+      const coverURLs = new Map(); // cover url -> object url (reused across re-renders)
+      async function loadCover(im, url) {
+        if (coverURLs.has(url)) {
+          im.src = coverURLs.get(url);
+          return;
+        }
+        let blob = await cacheGet(url);
+        if (!blob) {
+          try {
+            const res = await fetch(url, { mode: "cors" });
+            if (!res.ok) throw new Error(res.status);
+            blob = await res.blob();
+            if (!blob.type.startsWith("image/"))
+              throw new Error("not an image");
+            cachePut(url, blob);
+          } catch (e) {
+            im.src = url;
+            return;
+          } // CORS blocked: plain <img>, browser cache applies
+        }
+        const u = URL.createObjectURL(blob);
+        coverURLs.set(url, u);
+        im.src = u;
+      }
+      const io = new IntersectionObserver(
+        (es) =>
+          es.forEach((e) => {
+            if (e.isIntersecting) {
+              io.unobserve(e.target);
+              e.target._load();
+            }
+          }),
+        { rootMargin: "300px" },
+      );
+
       function makeCard(b) {
         const el = document.createElement("button");
         el.className = "card";
@@ -857,13 +987,15 @@
           .filter(Boolean)
           .join(" · ");
         if (b.cover) {
-          const im = new Image();
-          im.alt = "";
-          im.loading = "lazy";
-          im.referrerPolicy = "no-referrer";
-          im.onerror = () => im.remove();
-          im.src = b.cover;
-          cv.appendChild(im);
+          cv._load = () => {
+            const im = new Image();
+            im.alt = "";
+            im.referrerPolicy = "no-referrer";
+            im.onerror = () => im.remove();
+            cv.appendChild(im);
+            loadCover(im, b.cover);
+          };
+          io.observe(cv); // fetch the cover only when it is near the screen
         }
         el.onclick = () => openBook(b);
         return el;
@@ -986,8 +1118,9 @@
         $("stage").innerHTML = "";
       }
       function freePages() {
-        pages.forEach((u) => URL.revokeObjectURL(u));
+        pages.forEach((u) => u && URL.revokeObjectURL(u));
         pages = [];
+        pageEls = [];
       }
 
       // width of one page when the whole book fits the stage exactly (no scrollbars)
@@ -997,10 +1130,27 @@
           H = st.clientHeight - PAD;
         return Math.min(W < 720 ? W : W / 2, H * ratio);
       }
+      function fill(d, i) {
+        // image, spinner (still rendering) or error text
+        d.innerHTML = "";
+        if (pages[i]) {
+          const im = new Image();
+          im.src = pages[i];
+          im.alt = `Page ${i + 1}`;
+          im.draggable = false;
+          d.appendChild(im);
+          return;
+        }
+        const s = document.createElement("span");
+        s.className = pages[i] === null ? "spin" : "fail";
+        if (pages[i] === "") s.textContent = "Couldn't load this page";
+        d.appendChild(s);
+      }
       function build(start) {
         destroyFlip();
         const st = $("stage"),
-          portrait = st.clientWidth - PAD < 720;
+          portrait = st.clientWidth - PAD < 720,
+          n = pages.length;
         const pw = Math.floor(fitWidth() * zoom),
           ph = Math.floor(pw / ratio);
         st.classList.toggle("zoomed", zoom > 1);
@@ -1008,17 +1158,15 @@
         host.className = "flip";
         host.style.cssText = `width:${portrait ? pw : pw * 2}px;height:${ph}px`;
         st.appendChild(host);
-        pages.forEach((u, i) => {
+        pageEls = [];
+        for (let i = 0; i < n; i++) {
           const d = document.createElement("div");
           d.className = "page";
-          if (i === 0 || i === pages.length - 1) d.dataset.density = "hard";
-          const im = new Image();
-          im.src = u;
-          im.alt = `Page ${i + 1}`;
-          im.draggable = false;
-          d.appendChild(im);
+          if (i === 0 || i === n - 1) d.dataset.density = "hard";
+          fill(d, i);
           host.appendChild(d);
-        });
+          pageEls.push(d);
+        }
         flip = new St.PageFlip(host, {
           width: pw,
           height: ph,
@@ -1073,56 +1221,127 @@
         $("reader").classList.remove("ready");
         $("reader").classList.add("on");
         $("rtitle").textContent = `${b.title} — ${b.sub}`;
+        $("bg").classList.add("done");
+        $("bg").firstElementChild.style.width = "0";
         showMsg("Opening the issue…", 0);
-        const tmp = [];
+
+        const id = b.driveId || b.pdf;
+        const url =
+          b.pdf ||
+          `https://www.googleapis.com/drive/v3/files/${b.driveId}?alt=media&key=${DRIVE_API_KEY}`;
+        // render size: sharp on retina screens and at 300% zoom; bucketed so cached pages are reused
+        const dpr = Math.min(window.devicePixelRatio || 1, 3),
+          cap = innerWidth < 720 ? 1800 : 2400;
+        const stW = $("stage").clientWidth - PAD;
+        const target =
+          Math.round(
+            Math.min(
+              cap,
+              Math.max(1400, (stW < 720 ? stW : stW / 2) * dpr * 2.5),
+            ) / 200,
+          ) * 200;
+        const mk = metaKey(id, target);
+        let revealed = false,
+          pdfP = null;
+        const getPdf = () =>
+          pdfP ||
+          (pdfP = (() => {
+            // the PDF is only downloaded if some page isn't cached
+            const task = pdfjsLib.getDocument({ url });
+            task.onProgress = (p) => {
+              if (!revealed && my === token && p.total)
+                showMsg("Downloading the issue…", (p.loaded / p.total) * 100);
+            };
+            return task.promise;
+          })());
         try {
-          const url =
-            b.pdf ||
-            `https://www.googleapis.com/drive/v3/files/${b.driveId}?alt=media&key=${DRIVE_API_KEY}`;
-          const pdf = await pdfjsLib.getDocument({ url }).promise;
-          const v0 = (await pdf.getPage(1)).getViewport({ scale: 1 });
-          ratio = v0.width / v0.height;
-          // render big enough to stay sharp on retina screens and at 300% zoom
-          const dpr = Math.min(window.devicePixelRatio || 1, 3);
-          const cap = innerWidth < 720 ? 1800 : 2400;
-          const scale =
-            Math.min(cap, Math.max(1400, fitWidth() * dpr * 2.5)) / v0.width;
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const vp = page.getViewport({ scale });
-            const c = document.createElement("canvas");
-            c.width = vp.width;
-            c.height = vp.height;
-            await page.render({
-              canvasContext: c.getContext("2d"),
-              viewport: vp,
-            }).promise;
-            const blob = await new Promise((r) =>
-              c.toBlob(r, "image/jpeg", 0.92),
-            );
-            c.width = c.height = 0;
-            tmp.push(URL.createObjectURL(blob));
-            if (my !== token) {
-              tmp.forEach((u) => URL.revokeObjectURL(u));
-              return;
-            }
-            showMsg(
-              `Loading page ${i} of ${pdf.numPages}`,
-              (i / pdf.numPages) * 100,
-            );
+          let meta = readMeta(mk);
+          if (!meta) {
+            const pdf = await getPdf();
+            if (my !== token) return;
+            const v0 = (await pdf.getPage(1)).getViewport({ scale: 1 });
+            meta = { n: pdf.numPages, ratio: v0.width / v0.height };
+            writeMeta(mk, meta);
           }
-          pages = tmp;
-          $("seek").max = pages.length;
-          $("goto").max = pages.length;
-          $("total").textContent = pages.length;
-          $("msg").classList.add("hide");
-          $("reader").classList.add("ready");
-          build(0);
+          ratio = meta.ratio;
+          pages = new Array(meta.n).fill(null);
+          $("seek").max = meta.n;
+          $("goto").max = meta.n;
+          $("total").textContent = meta.n;
+          const K = Math.min(2, meta.n);
+          let done = 0;
+          // next page to render: closest to where the reader is (slightly favouring forward)
+          const next = () => {
+            let best = -1,
+              bd = Infinity;
+            for (let i = 0; i < pages.length; i++)
+              if (pages[i] === null) {
+                const d = i >= cur ? i - cur : (cur - i) * 1.5;
+                if (d < bd) {
+                  bd = d;
+                  best = i;
+                }
+              }
+            return best;
+          };
+          for (;;) {
+            const i = next();
+            if (i < 0) break;
+            let blob = null;
+            try {
+              blob = await cacheGet(pageKey(id, target, i));
+              if (!blob) {
+                const pdf = await getPdf();
+                if (my !== token) return;
+                const page = await pdf.getPage(i + 1);
+                const vp = page.getViewport({
+                  scale: target / page.getViewport({ scale: 1 }).width,
+                });
+                const c = document.createElement("canvas");
+                c.width = vp.width;
+                c.height = vp.height;
+                await page.render({
+                  canvasContext: c.getContext("2d"),
+                  viewport: vp,
+                }).promise;
+                blob = await new Promise((r) =>
+                  c.toBlob(r, "image/jpeg", 0.92),
+                );
+                c.width = c.height = 0;
+                cachePut(pageKey(id, target, i), blob);
+              }
+            } catch (e) {
+              console.error(e);
+              if (!revealed) throw e; // nothing to show yet: report the error
+              if (my !== token) return;
+              pages[i] = "";
+              showPage(i);
+              continue;
+            }
+            if (my !== token) return;
+            pages[i] = URL.createObjectURL(blob);
+            done++;
+            if (revealed) showPage(i);
+            else if (done >= K) {
+              // first pages are ready: open the book now
+              revealed = true;
+              $("msg").classList.add("hide");
+              $("reader").classList.add("ready");
+              build(cur);
+            } else showMsg(`Loading page ${done} of ${K}`, (done / K) * 100);
+            $("bg").classList.toggle("done", done >= meta.n); // thin bar = background loading of the rest
+            $("bg").firstElementChild.style.width = (done / meta.n) * 100 + "%";
+          }
         } catch (err) {
           console.error(err);
-          tmp.forEach((u) => URL.revokeObjectURL(u));
-          showMsg("Couldn't load this issue. Please try again later.");
+          if (my === token) {
+            destroyFlip();
+            showMsg("Couldn't load this issue. Please try again later.");
+          }
         }
+      }
+      function showPage(i) {
+        if (pageEls[i]) fill(pageEls[i], i);
       }
       function closeReader() {
         token++;
