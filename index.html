@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Magazine</title>
     <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+    <link
       href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Noto+Sans+Ol+Chiki:wght@700&display=swap"
       rel="stylesheet"
     />
@@ -132,6 +136,11 @@
         gap: 12px;
         margin: 0 0 12px;
       }
+      .cat-h h2 i {
+        color: var(--accent);
+        font-size: 0.8em;
+        margin-right: 6px;
+      }
       .cat-h h2 {
         margin: 0;
         font-size: clamp(22px, 2.4vw, 36px);
@@ -172,10 +181,16 @@
       .track::-webkit-scrollbar {
         display: none;
       }
-      .track > .card,
-      .track > .tile {
+      .track > .card {
         flex: 0 0 calc((100% - (var(--n) - 1) * var(--gap)) / var(--n));
         scroll-snap-align: start;
+      }
+      .track > .tile {
+        flex: 0 0 clamp(140px, 12vw, 190px);
+        scroll-snap-align: start;
+      }
+      .genres .track {
+        --gap: 14px;
       }
       .cat[data-open="1"] .track {
         flex-wrap: wrap;
@@ -240,8 +255,8 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
-        padding: 24px 10px;
+        gap: 4px;
+        padding: 14px 12px;
         background: #fff;
         border-radius: 8px;
         box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14);
@@ -262,13 +277,13 @@
         outline: 3px solid var(--accent);
       }
       .ti {
-        width: 72px;
-        height: 72px;
-        border-radius: 16px;
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
         display: grid;
         place-items: center;
         color: #fff;
-        font-size: 30px;
+        font-size: 22px;
         font-weight: 700;
         font-family: "Noto Sans Ol Chiki", Roboto, sans-serif;
       }
@@ -277,12 +292,12 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-size: clamp(15px, 1.1vw, 18px);
+        font-size: clamp(14px, 1vw, 16px);
         font-weight: 500;
       }
       .tc {
         color: var(--sub);
-        font-size: clamp(14px, 1vw, 17px);
+        font-size: clamp(12px, 0.9vw, 14px);
       }
       .tc b {
         color: var(--accent);
@@ -578,12 +593,24 @@
       .fail {
         position: absolute;
         inset: 0;
-        display: grid;
-        place-items: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
         padding: 12px;
         text-align: center;
         font-size: 14px;
         color: #5f6368;
+      }
+      #reader .retry {
+        width: auto;
+        height: auto;
+        border-radius: 999px;
+        padding: 8px 22px;
+        background: var(--accent);
+        color: #fff;
+        display: block;
       }
       #bg {
         height: 3px;
@@ -787,7 +814,7 @@
       // Google Cloud API key with "Google Drive API" enabled.
       const DRIVE_API_KEY = "AIzaSyBAfeEO3OWZqrnGMqoYO5r9cPPcT5CLZSg";
       // Published CSV link of your Google Sheet (Share → Publish to web → pick the tab → CSV).
-      // Sheet columns (row 1 = headers): category, title, sub, author, color, driveId, pdf, cover
+      // Sheet columns (row 1 = headers): category, title, sub, author, color, driveId, pdf, cover, icon
       const SHEET_CSV_URL =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vTREzHC7NabWD51Mn0I_6_uZpdd-LnaCFCfl7XWJxcwpTDrrCFJF33iVedZBcGrx1f6HO97IMucQ1bw/pub?gid=0&single=true&output=csv";
       /* ========================== */
@@ -860,6 +887,38 @@
         if (c) return c;
         return o.driveid ? driveThumb(o.driveid) : "";
       }
+      const CAT_ICON = {}; // category -> Font Awesome classes (first icon found in the sheet)
+      let retryHook = null,
+        curId = null;
+      // accepts "book", "fa-book", "fa-regular fa-star", "fa-brands fa-youtube" ...
+      function faClass(v) {
+        const tk = (v || "")
+          .toLowerCase()
+          .replace(/[^a-z0-9 -]/g, "")
+          .split(/\s+/)
+          .filter(Boolean);
+        if (!tk.length) return "";
+        const out = tk.map((x) =>
+          /^(fa|fas|far|fab|fal|fat)$/.test(x) || x.startsWith("fa-")
+            ? x
+            : "fa-" + x,
+        );
+        if (
+          !out.some((x) =>
+            /^fa-(solid|regular|brands)$|^(fas|far|fab)$/.test(x),
+          )
+        )
+          out.unshift("fa-solid");
+        return out.join(" ");
+      }
+      function openFromHash() {
+        // reload / shared link: #read=<id>&page=<n>
+        const m = location.hash.match(/^#read=([^&]+)(?:&page=(\d+))?/);
+        if (!m) return;
+        const id = decodeURIComponent(m[1]),
+          b = BOOKS.find((x) => (x.driveId || x.pdf) === id);
+        if (b) openBook(b, (+m[2] || 1) - 1);
+      }
       async function loadBooks() {
         $("shelves").innerHTML = `<p class="empty">Loading the library…</p>`;
         try {
@@ -881,9 +940,14 @@
                 driveId: o.driveid,
                 pdf: o.pdf,
                 cover: coverUrl(o),
+                icon: faClass(o.icon),
               };
             });
+          BOOKS.forEach((b) => {
+            if (b.icon && !CAT_ICON[b.category]) CAT_ICON[b.category] = b.icon;
+          });
           renderShelves();
+          openFromHash();
         } catch (err) {
           console.error(err);
           $("shelves").innerHTML =
@@ -1056,7 +1120,12 @@
             t.innerHTML = `<span class="ti"></span><span class="tn"></span><span class="tc">Books: <b></b></span>`;
             t.querySelector(".ti").style.background =
               PALETTE[i % PALETTE.length];
-            t.querySelector(".ti").textContent = [...name][0].toUpperCase();
+            const ti = t.querySelector(".ti");
+            if (CAT_ICON[name]) {
+              const ic = document.createElement("i");
+              ic.className = CAT_ICON[name];
+              ti.appendChild(ic);
+            } else ti.textContent = [...name][0].toUpperCase();
             t.querySelector(".tn").textContent = name;
             t.querySelector("b").textContent = BOOKS.filter(
               (b) => b.category === name,
@@ -1076,7 +1145,12 @@
           sec.id = "cat-" + all.indexOf(name);
           if (s) sec.dataset.open = "1"; // while searching, show every match
           sec.innerHTML = `<div class="cat-h"><h2></h2><button class="va">View All</button></div>`;
-          sec.querySelector("h2").textContent = name;
+          const h2 = sec.querySelector("h2");
+          if (CAT_ICON[name]) {
+            const ic = document.createElement("i");
+            ic.className = CAT_ICON[name];
+            h2.append(ic, " " + name);
+          } else h2.textContent = name;
           sec.appendChild(makeCarousel(books.map(makeCard)));
           sec.querySelector(".va").onclick = () => {
             sec.dataset.open = sec.dataset.open === "1" ? "" : "1";
@@ -1142,8 +1216,20 @@
           return;
         }
         const s = document.createElement("span");
-        s.className = pages[i] === null ? "spin" : "fail";
-        if (pages[i] === "") s.textContent = "Couldn't load this page";
+        if (pages[i] === null) s.className = "spin";
+        else {
+          s.className = "fail";
+          const m = document.createElement("span");
+          m.textContent = "Couldn't load this page";
+          const bt = document.createElement("button");
+          bt.className = "retry";
+          bt.textContent = "Retry";
+          bt.onclick = () => retryHook && retryHook(i);
+          ["mousedown", "touchstart", "pointerdown"].forEach((ev) =>
+            bt.addEventListener(ev, (e) => e.stopPropagation()),
+          );
+          s.append(m, bt);
+        }
         d.appendChild(s);
       }
       function build(start) {
@@ -1192,6 +1278,12 @@
       function updateUI() {
         if (!flip) return;
         cur = Math.min(flip.getCurrentPageIndex(), pages.length - 1);
+        if (curId)
+          history.replaceState(
+            history.state,
+            "",
+            `#read=${encodeURIComponent(curId)}&page=${cur + 1}`,
+          );
         $("seek").value = cur + 1;
         $("goto").value = cur + 1;
         $("prev").disabled = cur <= 0;
@@ -1211,12 +1303,12 @@
         build(cur);
       }
 
-      async function openBook(b) {
+      async function openBook(b, start = 0) {
         const my = ++token;
         destroyFlip();
         freePages();
         zoom = 1;
-        cur = 0;
+        cur = Math.max(0, start);
         document.documentElement.classList.add("lock");
         $("reader").classList.remove("ready");
         $("reader").classList.add("on");
@@ -1226,6 +1318,11 @@
         showMsg("Opening the issue…", 0);
 
         const id = b.driveId || b.pdf;
+        curId = id;
+        const hash = `#read=${encodeURIComponent(id)}&page=${cur + 1}`;
+        if (history.state && history.state.r)
+          history.replaceState(history.state, "", hash);
+        else history.pushState({ r: 1 }, "", hash); // so the phone's Back button closes the reader
         const url =
           b.pdf ||
           `https://www.googleapis.com/drive/v3/files/${b.driveId}?alt=media&key=${DRIVE_API_KEY}`;
@@ -1252,8 +1349,53 @@
               if (!revealed && my === token && p.total)
                 showMsg("Downloading the issue…", (p.loaded / p.total) * 100);
             };
-            return task.promise;
+            return task.promise.catch((e) => {
+              pdfP = null;
+              throw e;
+            });
           })());
+        const renderOne = async (i) => {
+          let blob = await cacheGet(pageKey(id, target, i));
+          if (blob) return blob;
+          const pdf = await getPdf();
+          const page = await pdf.getPage(i + 1);
+          const vp = page.getViewport({
+            scale: target / page.getViewport({ scale: 1 }).width,
+          });
+          const c = document.createElement("canvas");
+          c.width = vp.width;
+          c.height = vp.height;
+          await page.render({ canvasContext: c.getContext("2d"), viewport: vp })
+            .promise;
+          blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.92));
+          c.width = c.height = 0;
+          cachePut(pageKey(id, target, i), blob);
+          return blob;
+        };
+        const renderRetry = async (i) => {
+          // one automatic retry before giving up
+          try {
+            return await renderOne(i);
+          } catch (e) {
+            await new Promise((r) => setTimeout(r, 700));
+            return await renderOne(i);
+          }
+        };
+        retryHook = async (i) => {
+          // the "Retry" button on a failed page
+          if (my !== token) return;
+          pages[i] = null;
+          showPage(i);
+          try {
+            const blob = await renderRetry(i);
+            if (my !== token) return;
+            pages[i] = URL.createObjectURL(blob);
+          } catch (e) {
+            console.error(e);
+            pages[i] = "";
+          }
+          showPage(i);
+        };
         try {
           let meta = readMeta(mk);
           if (!meta) {
@@ -1265,6 +1407,7 @@
           }
           ratio = meta.ratio;
           pages = new Array(meta.n).fill(null);
+          cur = Math.min(cur, meta.n - 1);
           $("seek").max = meta.n;
           $("goto").max = meta.n;
           $("total").textContent = meta.n;
@@ -1289,27 +1432,7 @@
             if (i < 0) break;
             let blob = null;
             try {
-              blob = await cacheGet(pageKey(id, target, i));
-              if (!blob) {
-                const pdf = await getPdf();
-                if (my !== token) return;
-                const page = await pdf.getPage(i + 1);
-                const vp = page.getViewport({
-                  scale: target / page.getViewport({ scale: 1 }).width,
-                });
-                const c = document.createElement("canvas");
-                c.width = vp.width;
-                c.height = vp.height;
-                await page.render({
-                  canvasContext: c.getContext("2d"),
-                  viewport: vp,
-                }).promise;
-                blob = await new Promise((r) =>
-                  c.toBlob(r, "image/jpeg", 0.92),
-                );
-                c.width = c.height = 0;
-                cachePut(pageKey(id, target, i), blob);
-              }
+              blob = await renderRetry(i);
             } catch (e) {
               console.error(e);
               if (!revealed) throw e; // nothing to show yet: report the error
@@ -1343,13 +1466,28 @@
       function showPage(i) {
         if (pageEls[i]) fill(pageEls[i], i);
       }
-      function closeReader() {
+      function teardown() {
         token++;
+        retryHook = null;
+        curId = null;
         destroyFlip();
         freePages();
         $("reader").classList.remove("on", "ready");
         document.documentElement.classList.remove("lock");
+        if (location.hash)
+          history.replaceState(
+            history.state,
+            "",
+            location.pathname + location.search,
+          );
       }
+      function closeReader() {
+        if (history.state && history.state.r) history.back();
+        else teardown();
+      }
+      addEventListener("popstate", () => {
+        if (!(history.state && history.state.r)) teardown();
+      });
 
       $("close").onclick = closeReader;
       $("prev").onclick = () => flip && flip.flipPrev();
