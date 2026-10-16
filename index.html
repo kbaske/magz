@@ -1316,7 +1316,9 @@
         const m = v.match(/[-\w]{25,}/);
         if (m && (/drive\.google\.com/.test(v) || /^[-\w]{25,}$/.test(v)))
           return imgSrc(m[0], w);
-        return /^https?:/.test(v) ? v : "";
+        return /^https?:|^[\w./-]+\.(png|jpe?g|webp|svg|gif)$/i.test(v)
+          ? v
+          : ""; // web URL or a file kept in the repo (e.g. icons/quill.png)
       }
       function coverUrl(o) {
         if (o.cover) return driveImg(o.cover, 500) || o.cover;
@@ -1392,7 +1394,8 @@
       }
       function iconFields(o) {
         const iv = o.icon || "",
-          isImg = /^https?:|drive\.google\.com/.test(iv);
+          isImg =
+            /^https?:|drive\.google\.com|\.(png|jpe?g|webp|svg|gif)$/i.test(iv);
         return {
           icon: isImg ? "" : faClass(iv),
           iconImg: driveImg(o.iconimg || (isImg ? iv : ""), 160),
