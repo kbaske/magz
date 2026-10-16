@@ -1212,7 +1212,7 @@
       const SHEET_CSV_URL =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vTREzHC7NabWD51Mn0I_6_uZpdd-LnaCFCfl7XWJxcwpTDrrCFJF33iVedZBcGrx1f6HO97IMucQ1bw/pub?gid=0&single=true&output=csv";
       // OPTIONAL: Apps Script web-app URL that serves your PRIVATE Drive files (see instructions). Leave "" to use the API key.
-      const PROXY_URL = "/exec";
+      const PROXY_URL = "";
       // Website name used in the title bar and in shared messages.
       const SITE_NAME = "Magazine";
       /* ========================== */
@@ -1320,6 +1320,14 @@
           ? v
           : ""; // web URL or a file kept in the repo (e.g. icons/quill.png)
       }
+      // Category icons are always read straight from Drive (never through the proxy): share just the icon files as "Anyone with the link"
+      function iconSrc(v) {
+        if (!v) return "";
+        const m = v.match(/[-\w]{25,}/);
+        if (m && (/drive\.google\.com/.test(v) || /^[-\w]{25,}$/.test(v)))
+          return `https://www.googleapis.com/drive/v3/files/${m[0]}?alt=media&key=${DRIVE_API_KEY}`;
+        return driveImg(v, 160);
+      }
       function coverUrl(o) {
         if (o.cover) return driveImg(o.cover, 500) || o.cover;
         return o.driveid ? imgSrc(o.driveid, 500) : "";
@@ -1398,7 +1406,7 @@
             /^https?:|drive\.google\.com|\.(png|jpe?g|webp|svg|gif)$/i.test(iv);
         return {
           icon: isImg ? "" : faClass(iv),
-          iconImg: driveImg(o.iconimg || (isImg ? iv : ""), 160),
+          iconImg: iconSrc(o.iconimg || (isImg ? iv : "")),
         };
       }
       // Uploaded icons are turned into a one-colour glyph so they look like the Font Awesome ones
