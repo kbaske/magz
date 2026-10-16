@@ -4,6 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Magazine</title>
+    <meta property="og:site_name" content="Magazine" />
+    <meta property="og:title" content="Magazine" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
@@ -308,13 +310,22 @@
         font-size: 0.8em;
         margin-right: 6px;
       }
-      .cat-h h2 .glyph {
-        display: inline-block;
-        width: 1em;
-        height: 1em;
-        vertical-align: -0.12em;
-        margin-right: 6px;
-        color: var(--primary);
+      .ti.sm {
+        display: inline-grid;
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: var(--primary);
+        vertical-align: -0.2em;
+        margin-right: 8px;
+        font-size: 16px;
+      }
+      .iglyph {
+        width: 62%;
+        height: 62%;
+        object-fit: contain;
+        filter: grayscale(1) invert(1) contrast(1.4);
+        mix-blend-mode: screen;
       }
       .cat-h .btn {
         margin-left: auto;
@@ -979,6 +990,9 @@
       #msg .linear {
         width: 240px;
       }
+      #mtxt {
+        max-width: 440px;
+      }
 
       @media (max-width: 719px) {
         .brand {
@@ -1198,7 +1212,9 @@
       const SHEET_CSV_URL =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vTREzHC7NabWD51Mn0I_6_uZpdd-LnaCFCfl7XWJxcwpTDrrCFJF33iVedZBcGrx1f6HO97IMucQ1bw/pub?gid=0&single=true&output=csv";
       // OPTIONAL: Apps Script web-app URL that serves your PRIVATE Drive files (see instructions). Leave "" to use the API key.
-      const PROXY_URL = "/exec";
+      const PROXY_URL = "";
+      // Website name used in the title bar and in shared messages.
+      const SITE_NAME = "Magazine";
       /* ========================== */
 
       pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -1425,11 +1441,32 @@
         s.className = "glyph";
         glyph(spec.img)
           .then((g) => s.style.setProperty("--g", `url(${g})`))
-          .catch(() => {
-            s.remove();
-            onfail && onfail();
+          .catch(async () => {
+            try {
+              // pixels not readable (cross-origin): show the image itself, blended to look white
+              const im = new Image();
+              im.className = "iglyph";
+              im.alt = "";
+              im.onerror = () => {
+                im.remove();
+                onfail && onfail();
+              };
+              im.src = await imageSrc(spec.img);
+              s.replaceWith(im);
+            } catch (e) {
+              s.remove();
+              onfail && onfail();
+            }
           });
         return s;
+      }
+      function headIcon(spec) {
+        // category heading: small coloured tile, same look as the genre tiles
+        if (spec.fa) return makeIcon(spec);
+        const t = document.createElement("span");
+        t.className = "ti sm";
+        t.appendChild(makeIcon(spec, () => t.remove()));
+        return t;
       }
 
       /* ---------- library ---------- */
@@ -1635,7 +1672,7 @@
           if (s) sec.dataset.open = "1"; // while searching, show every match
           sec.innerHTML = `<div class="cat-h"><h2></h2><button class="btn tonal va">View All</button></div>`;
           const h2 = sec.querySelector("h2");
-          if (CAT_ICON[name]) h2.append(makeIcon(CAT_ICON[name]), " " + name);
+          if (CAT_ICON[name]) h2.append(headIcon(CAT_ICON[name]), " " + name);
           else h2.textContent = name;
           sec.appendChild(makeCarousel(books.map(makeCard)));
           sec.querySelector(".va").onclick = () => {
@@ -1712,20 +1749,26 @@
       }
       addEventListener("popstate", route);
 
-      async function share(title, url) {
+      async function share(title, subtitle, url) {
+        const text = `${title}${subtitle ? " · " + subtitle : ""} | ${SITE_NAME}`;
         try {
           if (navigator.share) {
-            await navigator.share({ title, url });
+            await navigator.share({
+              title: `${title} — ${SITE_NAME}`,
+              text,
+              url,
+            });
             return;
           }
         } catch (e) {
           if (e.name === "AbortError") return;
         }
+        const full = `${text}\n${url}`; // fallback: copy "title · subtitle | site" + link
         try {
-          await navigator.clipboard.writeText(url);
+          await navigator.clipboard.writeText(full);
           snack("Link copied");
         } catch (e) {
-          prompt("Copy this link", url);
+          prompt("Copy this link", full);
         }
       }
       function snack(msg) {
@@ -1765,8 +1808,7 @@
         $("dsum").textContent = b.summary;
         $("dread").onclick = () =>
           go(`#read=${encodeURIComponent(b.uid)}&page=1`);
-        $("dshare").onclick = () =>
-          share(`${b.title} — ${b.sub}`, linkFor(b.uid));
+        $("dshare").onclick = () => share(b.title, b.sub, linkFor(b.uid));
         $("detail").hidden = false;
         detailOpen = true;
         syncLock();
@@ -2084,11 +2126,21 @@
           console.error(err);
           if (my === token) {
             destroyFlip();
-            showMsg(
-              "Couldn't load this issue. Please try again later.",
-              null,
-              true,
-            );
+            const code =
+              err &&
+              (err.status ||
+                (String(err.message).match(/\((\d{3})\)/) || [])[1]);
+            let why = "Couldn't load this issue.";
+            if (+code === 401 || +code === 403)
+              why +=
+                " Google refused access (HTTP " +
+                code +
+                "). With the API key the file must be shared as “Anyone with the link”, and the key must allow this website. For private files, set PROXY_URL.";
+            else if (+code === 404)
+              why +=
+                " File not found (HTTP 404). Check the driveId in the sheet.";
+            else if (err && err.message) why += " (" + err.message + ")";
+            showMsg(why, null, true);
           }
         }
       }
@@ -2108,7 +2160,8 @@
       $("rshare").onclick = () =>
         curBook &&
         share(
-          `${curBook.title} — ${curBook.sub} (page ${cur + 1})`,
+          curBook.title,
+          `${curBook.sub} · page ${cur + 1}`,
           linkFor(curId, cur + 1),
         );
       $("prev").onclick = () => flip && flip.flipPrev();
@@ -2182,6 +2235,8 @@
         { passive: true },
       );
       $("top").onclick = () => scrollTo({ top: 0, behavior: "smooth" });
+      document.title = SITE_NAME;
+      document.querySelector(".brand").textContent = SITE_NAME;
       loadBooks();
     </script>
   </body>
