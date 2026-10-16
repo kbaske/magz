@@ -13,12 +13,26 @@
       rel="stylesheet"
     />
     <style>
+      /* ---------- Material 3 tokens (change --primary to re-theme) ---------- */
       :root {
-        --ink: #202124;
-        --sub: #5f6368;
-        --line: #dadce0;
-        --bg: #fff;
-        --accent: #e06900;
+        --primary: #b85500;
+        --on-primary: #fff;
+        --pc: #ffdcc2;
+        --on-pc: #3a1a00;
+        --sc: #ffe9db;
+        --on-sc: #4a2a12;
+        --bg: #fffbf8;
+        --s1: #fbf2ec;
+        --s2: #f6ece5;
+        --s3: #f0e6df;
+        --on: #211a15;
+        --onv: #52443c;
+        --outline: #85736a;
+        --ov: #d7c3b8;
+        --track: #ead9cc;
+        --e1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+        --e2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+        --e3: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
         --gap: 36px;
         --n: 6;
       }
@@ -57,22 +71,164 @@
       body {
         margin: 0;
         background: var(--bg);
-        color: var(--ink);
-        font-family: Roboto, "Noto Sans Ol Chiki", system-ui, sans-serif;
+        color: var(--on);
+        font:
+          400 16px/1.5 Roboto,
+          "Noto Sans Ol Chiki",
+          system-ui,
+          sans-serif;
       }
       svg {
         display: block;
         fill: currentColor;
       }
+      .i {
+        width: 24px;
+        height: 24px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
 
-      /* app bar */
+      /* buttons */
+      .ibtn {
+        position: relative;
+        flex: none;
+        width: 40px;
+        height: 40px;
+        border: 0;
+        border-radius: 50%;
+        background: none;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+      }
+      .ibtn:hover:not(:disabled) {
+        background: color-mix(in srgb, currentColor 8%, transparent);
+      }
+      .ibtn:disabled {
+        opacity: 0.38;
+        cursor: default;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 40px;
+        padding: 0 24px;
+        border: 0;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.1px;
+        cursor: pointer;
+        transition:
+          box-shadow 0.15s,
+          filter 0.15s;
+      }
+      .btn .i {
+        width: 18px;
+        height: 18px;
+      }
+      .btn.filled {
+        background: var(--primary);
+        color: var(--on-primary);
+      }
+      .btn.tonal {
+        background: var(--sc);
+        color: var(--on-sc);
+      }
+      .btn.text {
+        background: none;
+        color: var(--primary);
+        padding: 0 12px;
+      }
+      .btn:hover {
+        filter: brightness(1.06);
+        box-shadow: var(--e1);
+      }
+      .btn.text:hover {
+        box-shadow: none;
+        background: color-mix(in srgb, var(--primary) 8%, transparent);
+      }
+
+      /* progress indicators */
+      .linear {
+        position: relative;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--track);
+        overflow: hidden;
+      }
+      .linear i {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 0;
+        border-radius: 2px;
+        background: var(--primary);
+        transition: width 0.25s cubic-bezier(0.2, 0, 0, 1);
+      }
+      .linear.ind i {
+        width: 35%;
+        animation: ind 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      @keyframes ind {
+        0% {
+          left: -35%;
+        }
+        100% {
+          left: 100%;
+        }
+      }
+      .circ {
+        width: 40px;
+        height: 40px;
+        animation: rot 1.4s linear infinite;
+      }
+      .circ circle {
+        fill: none;
+        stroke: var(--primary);
+        stroke-width: 4;
+        stroke-linecap: round;
+        animation: dash 1.4s ease-in-out infinite;
+      }
+      @keyframes rot {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes dash {
+        0% {
+          stroke-dasharray: 1 200;
+          stroke-dashoffset: 0;
+        }
+        50% {
+          stroke-dasharray: 90 200;
+          stroke-dashoffset: -35;
+        }
+        100% {
+          stroke-dasharray: 90 200;
+          stroke-dashoffset: -125;
+        }
+      }
+
+      /* top app bar + search */
       .appbar {
         position: sticky;
         top: 0;
         z-index: 5;
         background: var(--bg);
-        border-bottom: 1px solid #e8eaed;
-        padding: 12px 20px;
+        padding: 12px clamp(16px, 5.2vw, 100px);
+        box-shadow: 0 1px 0 var(--ov);
       }
       .top {
         display: flex;
@@ -87,39 +243,45 @@
       }
       .search {
         flex: 1;
-        min-width: 220px;
-        max-width: 680px;
+        min-width: 200px;
+        max-width: 720px;
+        height: 56px;
         display: flex;
         align-items: center;
         gap: 12px;
-        height: 48px;
-        padding: 0 16px;
-        border-radius: 24px;
-        background: #f1f3f4;
-        color: var(--sub);
+        padding: 0 20px;
+        border-radius: 28px;
+        background: var(--s3);
+        color: var(--onv);
         transition:
-          background 0.15s,
-          box-shadow 0.15s;
+          background 0.2s,
+          box-shadow 0.2s;
       }
       .search:focus-within {
-        background: #fff;
-        box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+        background: var(--s2);
+        box-shadow: var(--e2);
       }
       #q {
         flex: 1;
+        min-width: 0;
         border: 0;
         outline: 0;
         background: none;
-        font: inherit;
         font-size: 16px;
-        color: var(--ink);
-        min-width: 0;
+        color: var(--on);
       }
-      [hidden] {
-        display: none !important;
+      .appbar .linear {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 0;
+        background: transparent;
       }
+
+      /* sections + carousel */
       main {
-        padding: 8px clamp(16px, 5.2vw, 100px) 64px;
+        padding: 8px clamp(16px, 5.2vw, 100px) 72px;
         max-width: 1920px;
         margin: 0 auto;
       }
@@ -128,7 +290,7 @@
         margin-top: 28px;
       }
       .cat {
-        scroll-margin-top: 76px;
+        scroll-margin-top: 84px;
       }
       .cat-h {
         display: flex;
@@ -136,35 +298,27 @@
         gap: 12px;
         margin: 0 0 12px;
       }
+      .cat-h h2 {
+        margin: 0;
+        font-size: clamp(22px, 2.2vw, 28px);
+        font-weight: 400;
+      }
       .cat-h h2 i {
-        color: var(--accent);
+        color: var(--primary);
         font-size: 0.8em;
         margin-right: 6px;
       }
-      .cat-h h2 {
-        margin: 0;
-        font-size: clamp(22px, 2.4vw, 36px);
-        font-weight: 500;
+      .cat-h h2 .glyph {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        vertical-align: -0.12em;
+        margin-right: 6px;
+        color: var(--primary);
       }
-      .va {
+      .cat-h .btn {
         margin-left: auto;
-        height: clamp(40px, 3.6vw, 64px);
-        padding: 0 clamp(20px, 2vw, 32px);
-        border: 0;
-        border-radius: 999px;
-        background: var(--accent);
-        color: #fff;
-        font: inherit;
-        font-size: clamp(15px, 1.3vw, 21px);
-        cursor: pointer;
       }
-      .va:hover,
-      .nav:hover,
-      #top:hover {
-        filter: brightness(1.1);
-      }
-
-      /* carousel */
       .car {
         position: relative;
       }
@@ -203,25 +357,23 @@
         top: 38%;
         transform: translateY(-50%);
         z-index: 2;
-        width: 52px;
-        height: 52px;
-        border: 0;
-        border-radius: 50%;
-        background: var(--accent);
-        color: #fff;
-        display: grid;
-        place-items: center;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        width: 48px;
+        height: 48px;
+        background: var(--s3);
+        color: var(--on);
+        box-shadow: var(--e2);
+      }
+      .nav:hover:not(:disabled) {
+        background: var(--s2);
       }
       .genres .nav {
         top: 50%;
       }
       .nav.prev {
-        left: -6px;
+        left: -8px;
       }
       .nav.next {
-        right: -6px;
+        right: -8px;
       }
       .cat[data-open="1"] .nav {
         display: none;
@@ -231,21 +383,24 @@
           display: none;
         }
       }
-      #top {
+      .fab {
         position: fixed;
         right: 20px;
         bottom: 20px;
         z-index: 6;
-        width: 48px;
-        height: 48px;
+        width: 56px;
+        height: 56px;
         border: 0;
-        border-radius: 50%;
-        background: var(--accent);
-        color: #fff;
+        border-radius: 16px;
+        background: var(--pc);
+        color: var(--on-pc);
         display: grid;
         place-items: center;
         cursor: pointer;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--e3);
+      }
+      .fab:hover {
+        filter: brightness(0.97);
       }
 
       /* genre tiles */
@@ -257,51 +412,47 @@
         align-items: center;
         gap: 4px;
         padding: 14px 12px;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14);
+        background: var(--s1);
+        border: 1px solid var(--ov);
+        border-radius: 16px;
         cursor: pointer;
         text-align: center;
         min-width: 0;
         transition:
-          box-shadow 0.15s,
-          transform 0.15s;
+          background 0.15s,
+          box-shadow 0.15s;
       }
-      .tile:hover,
-      .tile:focus-visible {
-        box-shadow: 0 5px 16px rgba(224, 105, 0, 0.3);
-        transform: translateY(-2px);
+      .tile:hover {
+        background: var(--s2);
+        box-shadow: var(--e1);
       }
       .tile:focus-visible,
       .card:focus-visible {
-        outline: 3px solid var(--accent);
-      }
-      .ti.img {
-        background: none !important;
-      }
-      .ti img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        border-radius: inherit;
-      }
-      .cat-h h2 img {
-        width: 1em;
-        height: 1em;
-        object-fit: contain;
-        vertical-align: -0.12em;
-        margin-right: 6px;
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
       }
       .ti {
         width: 52px;
         height: 52px;
-        border-radius: 12px;
+        border-radius: 14px;
         display: grid;
         place-items: center;
         color: #fff;
         font-size: 22px;
         font-weight: 700;
         font-family: "Noto Sans Ol Chiki", Roboto, sans-serif;
+      }
+      .glyph {
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: currentColor;
+        -webkit-mask: var(--g) center/contain no-repeat;
+        mask: var(--g) center/contain no-repeat;
+      }
+      .ti .glyph {
+        width: 62%;
+        height: 62%;
       }
       .tn {
         max-width: 100%;
@@ -312,15 +463,15 @@
         font-weight: 500;
       }
       .tc {
-        color: var(--sub);
+        color: var(--onv);
         font-size: clamp(12px, 0.9vw, 14px);
       }
       .tc b {
-        color: var(--accent);
+        color: var(--primary);
         font-weight: 500;
       }
 
-      /* book cards */
+      /* book cards + opening-book hover */
       .card {
         all: unset;
         box-sizing: border-box;
@@ -339,9 +490,9 @@
         position: absolute;
         inset: -14px -16px -12px;
         z-index: -1;
-        border-radius: 4px;
-        background: #fcf6ee;
-        box-shadow: 0 3px 14px rgba(0, 0, 0, 0.14);
+        border-radius: 16px;
+        background: var(--s2);
+        box-shadow: var(--e1);
         opacity: 0;
         transition: opacity 0.18s;
       }
@@ -371,7 +522,7 @@
       .cover {
         position: absolute;
         inset: 0;
-        border-radius: 3px;
+        border-radius: 4px 8px 8px 4px;
         background: var(--c, #a23b4a);
         overflow: hidden;
         box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.3);
@@ -449,25 +600,168 @@
         font-weight: 500;
       }
       .cs {
-        margin-top: 6px;
-        font-size: clamp(13px, 0.95vw, 16px);
-        color: var(--sub);
+        margin-top: 4px;
+        font-size: clamp(13px, 0.95vw, 15px);
+        color: var(--onv);
       }
       .empty {
         margin: 48px 0;
         text-align: center;
-        color: var(--sub);
+        color: var(--onv);
       }
 
-      /* reader */
+      /* details dialog */
+      .scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 8;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        background: rgba(33, 26, 21, 0.42);
+        animation: fade 0.18s;
+      }
+      @keyframes fade {
+        from {
+          opacity: 0;
+        }
+      }
+      @keyframes pop {
+        from {
+          opacity: 0;
+          transform: scale(0.94);
+        }
+      }
+      .dialog {
+        position: relative;
+        width: min(780px, 100%);
+        max-height: calc(100dvh - 32px);
+        overflow: auto;
+        padding: 28px;
+        border-radius: 28px;
+        background: var(--bg);
+        box-shadow: var(--e3);
+        animation: pop 0.22s cubic-bezier(0.2, 0, 0, 1);
+      }
+      .dialog .x {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+      }
+      .d-main {
+        display: flex;
+        gap: 28px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      .d-cover {
+        width: min(200px, 60%);
+        flex: none;
+        margin: 0 auto;
+      }
+      .d-cover .b3d {
+        margin: 0;
+      }
+      .d-info {
+        flex: 1;
+        min-width: 260px;
+      }
+      .d-info h2 {
+        margin: 0 40px 14px 0;
+        font-size: 28px;
+        line-height: 1.25;
+        font-weight: 400;
+      }
+      .d-rows {
+        border: 1px solid var(--ov);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .d-row {
+        display: grid;
+        grid-template-columns: 28px 110px 1fr;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        font-size: 14px;
+      }
+      .d-row + .d-row {
+        border-top: 1px solid var(--ov);
+      }
+      .d-row i {
+        color: var(--primary);
+        text-align: center;
+      }
+      .d-row .dl {
+        color: var(--onv);
+      }
+      .d-row .dv {
+        font-weight: 500;
+      }
+      .d-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      #dsumwrap h3 {
+        margin: 26px 0 6px;
+        font-size: 20px;
+        font-weight: 500;
+      }
+      #dsum {
+        margin: 0;
+        color: var(--onv);
+        white-space: pre-line;
+      }
+      #snack {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        z-index: 20;
+        max-width: 90vw;
+        padding: 14px 16px;
+        border-radius: 4px;
+        background: #362f2b;
+        color: #fbeee7;
+        font-size: 14px;
+        box-shadow: var(--e3);
+        transform: translate(-50%, 90px);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          transform 0.25s,
+          opacity 0.25s;
+      }
+      #snack.on {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+
+      /* reader (dark Material surface) */
       #reader {
+        --primary: #ffb68a;
+        --on-primary: #4e2400;
+        --pc: #6e3000;
+        --on-pc: #ffdcc2;
+        --sc: #5a4234;
+        --on-sc: #ffe9db;
+        --bg: #17120e;
+        --s1: #1f1914;
+        --s2: #2a231d;
+        --s3: #352d26;
+        --on: #ebe0d8;
+        --onv: #d7c3b8;
+        --outline: #9f8d83;
+        --ov: #52443c;
+        --track: #4a3f37;
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         height: 100dvh;
-        background: #202124;
-        color: #e8eaed;
+        background: var(--bg);
+        color: var(--on);
         display: none;
         flex-direction: column;
         z-index: 10;
@@ -478,70 +772,35 @@
       .bar {
         display: flex;
         align-items: center;
-        gap: 16px;
-        padding: 4px 12px;
+        gap: 12px;
+        padding: 6px 12px;
+        background: var(--s1);
       }
       .titlebar {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
         min-width: 0;
-        flex: 0 1 320px;
+        flex: 0 1 340px;
       }
       .t {
+        flex: 1;
+        min-width: 0;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        font-size: 16px;
+        font-size: 18px;
       }
       .tools {
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         min-width: 0;
         visibility: hidden;
       }
       #reader.ready .tools {
         visibility: visible;
-      }
-      #reader button {
-        font: inherit;
-        color: inherit;
-        background: none;
-        border: 0;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        display: grid;
-        place-items: center;
-        cursor: pointer;
-        flex: none;
-      }
-      #reader button:hover:not(:disabled) {
-        background: #ffffff1f;
-      }
-      #reader button:disabled {
-        opacity: 0.35;
-        cursor: default;
-      }
-      #reader button:focus-visible,
-      #goto:focus-visible {
-        outline: 2px solid #8ab4f8;
-      }
-      #reader .pill {
-        width: auto;
-        border-radius: 20px;
-        padding: 0 14px;
-        font-size: 14px;
-        font-weight: 500;
-        color: #8ab4f8;
-      }
-      #seek {
-        flex: 1;
-        min-width: 60px;
-        accent-color: #8ab4f8;
-        margin: 0 8px;
       }
       .go {
         display: flex;
@@ -549,20 +808,102 @@
         gap: 6px;
         font-size: 14px;
         white-space: nowrap;
+        color: var(--onv);
       }
       #goto {
-        width: 52px;
-        height: 32px;
+        width: 56px;
+        height: 36px;
+        border: 1px solid var(--outline);
+        border-radius: 8px;
+        background: none;
+        color: var(--on);
         font: inherit;
         text-align: center;
-        border-radius: 8px;
-        border: 1px solid #5f6368;
-        background: #303134;
-        color: #e8eaed;
+      }
+      #goto:focus {
+        outline: 0;
+        border: 2px solid var(--primary);
       }
       .zoom {
         display: flex;
         align-items: center;
+      }
+      #zval {
+        min-width: 64px;
+        height: 36px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 18px;
+        background: none;
+        color: var(--primary);
+        font-weight: 500;
+        cursor: pointer;
+      }
+      #zval:hover {
+        background: color-mix(in srgb, var(--primary) 8%, transparent);
+      }
+      #seek {
+        flex: 1;
+        min-width: 60px;
+        height: 24px;
+        margin: 0 8px;
+        background: transparent;
+        -webkit-appearance: none;
+        appearance: none;
+        --p: 0%;
+        cursor: pointer;
+      }
+      #seek::-webkit-slider-runnable-track {
+        height: 4px;
+        border-radius: 2px;
+        background: linear-gradient(
+          90deg,
+          var(--primary) var(--p),
+          var(--track) var(--p)
+        );
+      }
+      #seek::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        margin-top: -8px;
+        border-radius: 50%;
+        background: var(--primary);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 20%, transparent);
+        transition: box-shadow 0.15s;
+      }
+      #seek:hover::-webkit-slider-thumb,
+      #seek:active::-webkit-slider-thumb {
+        box-shadow: 0 0 0 8px
+          color-mix(in srgb, var(--primary) 20%, transparent);
+      }
+      #seek::-moz-range-track {
+        height: 4px;
+        border-radius: 2px;
+        background: var(--track);
+      }
+      #seek::-moz-range-progress {
+        height: 4px;
+        border-radius: 2px;
+        background: var(--primary);
+      }
+      #seek::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border: 0;
+        border-radius: 50%;
+        background: var(--primary);
+      }
+      #seek:focus-visible {
+        outline: 0;
+      }
+      #bg {
+        flex: none;
+        border-radius: 0;
+        background: var(--s2);
+      }
+      #bg.done {
+        visibility: hidden;
       }
       #stage {
         flex: 1;
@@ -590,21 +931,18 @@
         background: #fff;
         position: relative;
       }
+      .page img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
       .spin {
         position: absolute;
         inset: 0;
-        margin: auto;
-        width: 30px;
-        height: 30px;
-        border: 3px solid #e0e0e0;
-        border-top-color: var(--accent);
-        border-radius: 50%;
-        animation: sp 1s linear infinite;
-      }
-      @keyframes sp {
-        to {
-          transform: rotate(360deg);
-        }
+        display: grid;
+        place-items: center;
       }
       .fail {
         position: absolute;
@@ -619,36 +957,9 @@
         font-size: 14px;
         color: #5f6368;
       }
-      #reader .retry {
-        width: auto;
-        height: auto;
-        border-radius: 999px;
-        padding: 8px 22px;
-        background: var(--accent);
-        color: #fff;
-        display: block;
-      }
-      #bg {
-        height: 3px;
-        flex: none;
-        background: #ffffff1a;
-      }
-      #bg.done {
-        visibility: hidden;
-      }
-      #bg i {
-        display: block;
-        height: 100%;
-        width: 0;
-        background: var(--accent);
-        transition: width 0.2s;
-      }
-      .page img {
-        width: 100%;
-        height: 100%;
-        display: block;
-        user-select: none;
-        -webkit-user-drag: none;
+      .fail .btn {
+        --primary: #b85500;
+        --on-primary: #fff;
       }
       #msg {
         position: absolute;
@@ -657,42 +968,37 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 12px;
-        text-align: center;
+        gap: 16px;
         padding: 24px;
+        text-align: center;
         pointer-events: none;
       }
       #msg.hide {
         display: none;
       }
-      #prog {
-        width: 220px;
-        height: 4px;
-        border-radius: 2px;
-        background: #ffffff30;
-        overflow: hidden;
-      }
-      #prog i {
-        display: block;
-        height: 100%;
-        width: 0;
-        background: #8ab4f8;
+      #msg .linear {
+        width: 240px;
       }
 
       @media (max-width: 719px) {
-        .appbar {
-          padding: 10px 12px;
-        }
         .brand {
           font-size: 20px;
+        }
+        .appbar {
+          padding-top: 10px;
+          padding-bottom: 10px;
         }
         .bar {
           display: contents;
         }
         .titlebar {
           order: 0;
-          padding: 4px 8px;
           flex: none;
+          padding: 4px 8px;
+          background: var(--s1);
+        }
+        #bg {
+          order: 0;
         }
         #stage {
           order: 1;
@@ -703,60 +1009,122 @@
           flex-wrap: wrap;
           justify-content: center;
           gap: 4px 6px;
-          padding: 0 8px calc(8px + env(safe-area-inset-bottom, 0px));
+          padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+          background: var(--s1);
         }
         #seek {
           order: -1;
           flex: none;
-          width: 100%;
-          margin: 0;
-        }
-        #reader button {
-          width: 36px;
-          height: 36px;
+          width: calc(100% - 16px);
+          margin: 0 8px 4px;
         }
         .pl,
         #zval {
           display: none;
         }
+        .dialog {
+          padding: 20px;
+          border-radius: 24px;
+        }
+        .d-info h2 {
+          font-size: 24px;
+        }
       }
       @media (prefers-reduced-motion: reduce) {
-        .card,
-        .tile,
-        .search,
-        .cover,
-        .pages,
-        .card::before {
-          transition: none;
+        * {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
         }
       }
     </style>
   </head>
   <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="i-back" viewBox="0 0 24 24">
+        <path
+          d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+        />
+      </symbol>
+      <symbol id="i-left" viewBox="0 0 24 24">
+        <path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+      </symbol>
+      <symbol id="i-right" viewBox="0 0 24 24">
+        <path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+      </symbol>
+      <symbol id="i-add" viewBox="0 0 24 24">
+        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+      </symbol>
+      <symbol id="i-remove" viewBox="0 0 24 24">
+        <path d="M19 13H5v-2h14v2z" />
+      </symbol>
+      <symbol id="i-close" viewBox="0 0 24 24">
+        <path
+          d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+        />
+      </symbol>
+      <symbol id="i-up" viewBox="0 0 24 24">
+        <path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z" />
+      </symbol>
+      <symbol id="i-share" viewBox="0 0 24 24">
+        <path
+          d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"
+        />
+      </symbol>
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <path
+          d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+        />
+      </symbol>
+    </svg>
+
     <header class="appbar">
       <div class="top">
         <div class="brand">Magazine</div>
-        <label class="search">
-          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-            <path
-              d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
-            />
-          </svg>
+        <label class="search"
+          ><svg class="i"><use href="#i-search" /></svg>
           <input
             id="q"
             type="search"
             placeholder="Search title or author"
             aria-label="Search issues"
-          />
-        </label>
+        /></label>
       </div>
+      <div id="libprog" class="linear ind" hidden><i></i></div>
     </header>
     <main id="shelves"></main>
-    <button id="top" hidden aria-label="Back to top">
-      <svg viewBox="0 0 24 24" width="24" height="24">
-        <path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z" />
-      </svg>
+    <button id="top" class="fab" hidden aria-label="Back to top">
+      <svg class="i"><use href="#i-up" /></svg>
     </button>
+
+    <div id="detail" class="scrim" hidden>
+      <div
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dtitle"
+      >
+        <button class="ibtn x" id="dclose" aria-label="Close">
+          <svg class="i"><use href="#i-close" /></svg>
+        </button>
+        <div class="d-main">
+          <div class="d-cover" id="dcover"></div>
+          <div class="d-info">
+            <h2 id="dtitle"></h2>
+            <div class="d-rows" id="drows"></div>
+            <div class="d-actions">
+              <button class="btn tonal" id="dshare">
+                <svg class="i"><use href="#i-share" /></svg>Share
+              </button>
+              <button class="btn filled" id="dread">Start reading</button>
+            </div>
+          </div>
+        </div>
+        <div id="dsumwrap">
+          <h3>Book Summary</h3>
+          <p id="dsum"></p>
+        </div>
+      </div>
+    </div>
 
     <div
       id="reader"
@@ -766,16 +1134,27 @@
     >
       <header class="bar">
         <div class="titlebar">
-          <button id="close" aria-label="Back">
-            <svg viewBox="0 0 24 24" width="24" height="24">
-              <path
-                d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
-              />
-            </svg>
+          <button class="ibtn" id="close" aria-label="Back">
+            <svg class="i"><use href="#i-back" /></svg>
           </button>
           <span class="t" id="rtitle"></span>
+          <button class="ibtn" id="rshare" aria-label="Share this page">
+            <svg class="i"><use href="#i-share" /></svg>
+          </button>
         </div>
         <div class="tools">
+          <button class="ibtn" id="prev" aria-label="Previous page">
+            <svg class="i"><use href="#i-left" /></svg>
+          </button>
+          <label class="go"
+            ><span class="pl">Page</span
+            ><input id="goto" type="number" min="1" inputmode="numeric" /> /
+            <span id="total">0</span></label
+          >
+          <button class="btn text" id="gobtn">Go</button>
+          <button class="ibtn" id="next" aria-label="Next page">
+            <svg class="i"><use href="#i-right" /></svg>
+          </button>
           <input
             type="range"
             id="seek"
@@ -784,104 +1163,47 @@
             value="1"
             aria-label="Reading progress"
           />
-          <button id="prev" aria-label="Previous page">
-            <svg viewBox="0 0 24 24" width="24" height="24">
-              <path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-            </svg>
-          </button>
-          <label class="go"
-            ><span class="pl">Page</span
-            ><input id="goto" type="number" min="1" inputmode="numeric" /> /
-            <span id="total">0</span></label
-          >
-          <button id="gobtn" class="pill">Go</button>
-          <button id="next" aria-label="Next page">
-            <svg viewBox="0 0 24 24" width="24" height="24">
-              <path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-            </svg>
-          </button>
           <span class="zoom">
-            <button id="zout" aria-label="Zoom out">
-              <svg viewBox="0 0 24 24" width="24" height="24">
-                <path d="M19 13H5v-2h14v2z" />
-              </svg>
+            <button class="ibtn" id="zout" aria-label="Zoom out">
+              <svg class="i"><use href="#i-remove" /></svg>
             </button>
-            <button id="zval" class="pill" aria-label="Reset zoom">100%</button>
-            <button id="zin" aria-label="Zoom in">
-              <svg viewBox="0 0 24 24" width="24" height="24">
-                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-              </svg>
+            <button id="zval" aria-label="Reset zoom">100%</button>
+            <button class="ibtn" id="zin" aria-label="Zoom in">
+              <svg class="i"><use href="#i-add" /></svg>
             </button>
           </span>
         </div>
       </header>
-      <div id="bg" class="done"><i></i></div>
+      <div id="bg" class="linear done"><i></i></div>
       <div id="stage"></div>
       <div id="msg" class="hide">
+        <svg id="mspin" class="circ" viewBox="0 0 48 48">
+          <circle cx="24" cy="24" r="20" />
+        </svg>
         <div id="mtxt"></div>
-        <div id="prog"><i></i></div>
+        <div id="prog" class="linear"><i></i></div>
       </div>
     </div>
+    <div id="snack" role="status" aria-live="polite"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
     <script>
       /* ===== EDIT THIS PART ===== */
-      // Google Cloud API key with "Google Drive API" enabled.
+      // Google Cloud API key with "Google Drive API" enabled. Works ONLY for files shared as "Anyone with the link".
       const DRIVE_API_KEY = "AIzaSyBAfeEO3OWZqrnGMqoYO5r9cPPcT5CLZSg";
       // Published CSV link of your Google Sheet (Share → Publish to web → pick the tab → CSV).
-      // Sheet columns (row 1 = headers): id, category, title, sub, author, color, driveId, pdf, cover, icon, iconImg
+      // Sheet columns (row 1 = headers): id, category, title, sub, author, publisher, language, year, pages, summary,
+      //                                  color, driveId, pdf, cover, icon, iconImg
       const SHEET_CSV_URL =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vTREzHC7NabWD51Mn0I_6_uZpdd-LnaCFCfl7XWJxcwpTDrrCFJF33iVedZBcGrx1f6HO97IMucQ1bw/pub?gid=0&single=true&output=csv";
+      // OPTIONAL: Apps Script web-app URL that serves your PRIVATE Drive files (see instructions). Leave "" to use the API key.
+      const PROXY_URL = "";
       /* ========================== */
 
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
       const $ = (id) => document.getElementById(id);
-      let BOOKS = [],
-        flip = null,
-        token = 0,
-        pages = [],
-        pageEls = [],
-        ratio = 0.7,
-        zoom = 1,
-        cur = 0;
-      const ZOOMS = [1, 1.5, 2, 3],
-        PAD = 8;
-
-      /* ---------- shelves ---------- */
-      function parseCSV(text) {
-        const rows = [];
-        let row = [],
-          cell = "",
-          q = false;
-        for (let i = 0; i < text.length; i++) {
-          const c = text[i];
-          if (q) {
-            if (c === '"') {
-              if (text[i + 1] === '"') {
-                cell += '"';
-                i++;
-              } else q = false;
-            } else cell += c;
-          } else if (c === '"') q = true;
-          else if (c === ",") {
-            row.push(cell);
-            cell = "";
-          } else if (c === "\n" || c === "\r") {
-            if (c === "\r" && text[i + 1] === "\n") i++;
-            row.push(cell);
-            rows.push(row);
-            row = [];
-            cell = "";
-          } else cell += c;
-        }
-        if (cell || row.length) {
-          row.push(cell);
-          rows.push(row);
-        }
-        return rows;
-      }
       const PALETTE = [
         "#e8892b",
         "#d95d4f",
@@ -892,124 +1214,23 @@
         "#4f6bd6",
         "#6aa832",
       ];
-      const driveThumb = (id, w = 500) =>
-        `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`;
-      // cover: a Drive link/ID or image URL; if empty, the Drive thumbnail of the PDF's first page is used
-      function coverUrl(o) {
-        const c = o.cover,
-          m = c && c.match(/[-\w]{25,}/);
-        if (c && m && (/drive\.google\.com/.test(c) || /^[-\w]{25,}$/.test(c)))
-          return driveThumb(m[0]);
-        if (c) return c;
-        return o.driveid ? driveThumb(o.driveid) : "";
-      }
-      const CAT_ICON = {}; // category -> {fa:"fa-solid fa-book"} or {img:"<url>"}
-      // Drive link / file ID / image URL -> image url (Drive files use the thumbnail endpoint)
-      function driveImg(v, w) {
-        if (!v) return "";
-        const m = v.match(/[-\w]{25,}/);
-        if (m && (/drive\.google\.com/.test(v) || /^[-\w]{25,}$/.test(v)))
-          return driveThumb(m[0], w);
-        return /^https?:/.test(v) ? v : "";
-      }
-      // "icon" = Font Awesome name; "iconImg" (or a Drive link typed into "icon") = uploaded image, used when there is no FA icon
-      function iconFields(o) {
-        const iv = o.icon || "",
-          isImg = /^https?:|drive\.google\.com/.test(iv);
-        return {
-          icon: isImg ? "" : faClass(iv),
-          iconImg: driveImg(o.iconimg || (isImg ? iv : ""), 160),
-        };
-      }
-      function makeIcon(spec) {
-        if (spec.fa) {
-          const i = document.createElement("i");
-          i.className = spec.fa;
-          return i;
-        }
-        const im = new Image();
-        im.alt = "";
-        im.onerror = () => im.remove();
-        loadCover(im, spec.img);
-        return im;
-      }
-      let retryHook = null,
-        curId = null;
-      // accepts "book", "fa-book", "fa-regular fa-star", "fa-brands fa-youtube" ...
-      function faClass(v) {
-        const tk = (v || "")
-          .toLowerCase()
-          .replace(/[^a-z0-9 -]/g, "")
-          .split(/\s+/)
-          .filter(Boolean);
-        if (!tk.length) return "";
-        const out = tk.map((x) =>
-          /^(fa|fas|far|fab|fal|fat)$/.test(x) || x.startsWith("fa-")
-            ? x
-            : "fa-" + x,
-        );
-        if (
-          !out.some((x) =>
-            /^fa-(solid|regular|brands)$|^(fas|far|fab)$/.test(x),
-          )
-        )
-          out.unshift("fa-solid");
-        return out.join(" ");
-      }
-      function openFromHash() {
-        // reload / shared link: #read=<id>&page=<n>
-        const m = location.hash.match(/^#read=([^&]+)(?:&page=(\d+))?/);
-        if (!m) return;
-        const id = decodeURIComponent(m[1]),
-          b = BOOKS.find((x) => x.uid === id);
-        if (b) openBook(b, (+m[2] || 1) - 1);
-      }
-      async function loadBooks() {
-        $("shelves").innerHTML = `<p class="empty">Loading the library…</p>`;
-        try {
-          const res = await fetch(SHEET_CSV_URL);
-          if (!res.ok) throw new Error(res.status);
-          const [head, ...rows] = parseCSV(await res.text());
-          const keys = head.map((h) => h.trim().toLowerCase());
-          BOOKS = rows
-            .filter((r) => r.some((c) => c.trim()))
-            .map((r) => {
-              const o = {};
-              keys.forEach((k, i) => (o[k] = (r[i] || "").trim()));
-              return {
-                category: o.category || "Library",
-                title: o.title || "Magazine",
-                sub: o.sub || "",
-                author: o.author || "",
-                color: o.color || "#a23b4a",
-                driveId: o.driveid,
-                pdf: o.pdf,
-                cover: coverUrl(o),
-                ...iconFields(o),
-                uid: o.id || o.uniqueid || o.uid || o.driveid || o.pdf,
-              };
-            });
-          const fa = {},
-            im = {}; // Font Awesome first, uploaded image as the fallback
-          BOOKS.forEach((b) => {
-            if (b.icon && !fa[b.category]) fa[b.category] = b.icon;
-            if (b.iconImg && !im[b.category]) im[b.category] = b.iconImg;
-          });
-          BOOKS.forEach((b) => {
-            CAT_ICON[b.category] = fa[b.category]
-              ? { fa: fa[b.category] }
-              : im[b.category]
-                ? { img: im[b.category] }
-                : null;
-          });
-          renderShelves();
-          openFromHash();
-        } catch (err) {
-          console.error(err);
-          $("shelves").innerHTML =
-            `<p class="empty">Couldn't load the library. Please try again later.</p>`;
-        }
-      }
+      const ZOOMS = [1, 1.5, 2, 3],
+        PAD = 8;
+      const SPIN = `<svg class="circ" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/></svg>`;
+      let BOOKS = [],
+        flip = null,
+        token = 0,
+        pages = [],
+        pageEls = [],
+        ratio = 0.7,
+        zoom = 1,
+        cur = 0;
+      let curId = null,
+        curBook = null,
+        retryHook = null,
+        readerOn = false,
+        detailOpen = false;
+
       /* ---------- 2-hour cache (Cache Storage) ---------- */
       const TTL = 2 * 60 * 60 * 1000,
         CACHE = "magazine-v1";
@@ -1058,29 +1279,66 @@
       const pageKey = (id, w, i) =>
         `https://cache.local/p/${encodeURIComponent(id)}/${w}/${i}`;
 
-      const coverURLs = new Map(); // cover url -> object url (reused across re-renders)
-      async function loadCover(im, url) {
-        if (coverURLs.has(url)) {
-          im.src = coverURLs.get(url);
-          return;
-        }
-        let blob = await cacheGet(url);
+      /* ---------- Drive access: API key (public files) or Apps Script proxy (private files) ---------- */
+      const driveThumb = (id, w = 500) =>
+        `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`;
+      const imgSrc = (id, w) => (PROXY_URL ? `proxy:${id}` : driveThumb(id, w));
+      async function proxyBlob(id, kind) {
+        const r = await fetch(
+          `${PROXY_URL}?id=${encodeURIComponent(id)}&kind=${kind}`,
+        );
+        const j = await r.json();
+        if (j.error) throw new Error(j.error);
+        const bin = atob(j.data),
+          u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        return new Blob([u8], { type: j.mime });
+      }
+      function driveImg(v, w) {
+        // Drive link / file ID / image URL -> loadable source
+        if (!v) return "";
+        const m = v.match(/[-\w]{25,}/);
+        if (m && (/drive\.google\.com/.test(v) || /^[-\w]{25,}$/.test(v)))
+          return imgSrc(m[0], w);
+        return /^https?:/.test(v) ? v : "";
+      }
+      function coverUrl(o) {
+        if (o.cover) return driveImg(o.cover, 500) || o.cover;
+        return o.driveid ? imgSrc(o.driveid, 500) : "";
+      }
+      const objURLs = new Map(); // source -> object url (reused across re-renders)
+      async function imageSrc(url) {
+        // cached object URL, or the raw URL if it can't be fetched
+        if (objURLs.has(url)) return objURLs.get(url);
+        const px = url.startsWith("proxy:"),
+          key = px ? `https://cache.local/c/${url.slice(6)}` : url;
+        let blob = await cacheGet(key);
         if (!blob) {
           try {
-            const res = await fetch(url, { mode: "cors" });
-            if (!res.ok) throw new Error(res.status);
-            blob = await res.blob();
-            if (!blob.type.startsWith("image/"))
-              throw new Error("not an image");
-            cachePut(url, blob);
+            if (px) blob = await proxyBlob(url.slice(6), "thumb");
+            else {
+              const res = await fetch(url, { mode: "cors" });
+              if (!res.ok) throw new Error(res.status);
+              blob = await res.blob();
+              if (!blob.type.startsWith("image/"))
+                throw new Error("not an image");
+            }
+            cachePut(key, blob);
           } catch (e) {
-            im.src = url;
-            return;
+            if (px) throw e;
+            return url;
           } // CORS blocked: plain <img>, browser cache applies
         }
         const u = URL.createObjectURL(blob);
-        coverURLs.set(url, u);
-        im.src = u;
+        objURLs.set(url, u);
+        return u;
+      }
+      async function loadCover(im, url) {
+        try {
+          im.src = await imageSrc(url);
+        } catch (e) {
+          im.remove();
+        }
       }
       const io = new IntersectionObserver(
         (es) =>
@@ -1093,41 +1351,213 @@
         { rootMargin: "300px" },
       );
 
-      function makeCard(b) {
-        const el = document.createElement("button");
-        el.className = "card";
-        el.setAttribute("aria-label", `${b.title}, ${b.sub}`);
-        el.innerHTML = `<span class="b3d"><span class="pages"></span><span class="cover"><span class="ph"><b></b><span></span></span></span></span><span class="ct"></span><span class="cs"></span>`;
-        const cv = el.querySelector(".cover");
+      /* ---------- category icons: Font Awesome first, uploaded image second ---------- */
+      const CAT_ICON = {};
+      function faClass(v) {
+        // "book", "fa-book", "fa-regular fa-star" ...
+        const tk = (v || "")
+          .toLowerCase()
+          .replace(/[^a-z0-9 -]/g, "")
+          .split(/\s+/)
+          .filter(Boolean);
+        if (!tk.length) return "";
+        const out = tk.map((x) =>
+          /^(fa|fas|far|fab|fal|fat)$/.test(x) || x.startsWith("fa-")
+            ? x
+            : "fa-" + x,
+        );
+        if (
+          !out.some((x) =>
+            /^fa-(solid|regular|brands)$|^(fas|far|fab)$/.test(x),
+          )
+        )
+          out.unshift("fa-solid");
+        return out.join(" ");
+      }
+      function iconFields(o) {
+        const iv = o.icon || "",
+          isImg = /^https?:|drive\.google\.com/.test(iv);
+        return {
+          icon: isImg ? "" : faClass(iv),
+          iconImg: driveImg(o.iconimg || (isImg ? iv : ""), 160),
+        };
+      }
+      // Uploaded icons are turned into a one-colour glyph so they look like the Font Awesome ones
+      const glyphs = new Map();
+      async function glyph(url) {
+        if (glyphs.has(url)) return glyphs.get(url);
+        const im = new Image();
+        im.src = await imageSrc(url);
+        await im.decode();
+        const k = Math.min(
+          1,
+          256 / Math.max(im.naturalWidth, im.naturalHeight),
+        );
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(im.naturalWidth * k));
+        c.height = Math.max(1, Math.round(im.naturalHeight * k));
+        const x = c.getContext("2d");
+        x.drawImage(im, 0, 0, c.width, c.height);
+        const d = x.getImageData(0, 0, c.width, c.height),
+          p = d.data;
+        let tr = 0;
+        for (let i = 3; i < p.length; i += 4) if (p[i] < 250) tr++;
+        const byAlpha = tr > (p.length / 4) * 0.03; // transparent PNG: use its shape; opaque image: use its dark strokes
+        for (let i = 0; i < p.length; i += 4) {
+          const lum =
+              (0.2126 * p[i] + 0.7152 * p[i + 1] + 0.0722 * p[i + 2]) / 255,
+            a = p[i + 3];
+          p[i] = p[i + 1] = p[i + 2] = 255;
+          p[i + 3] = Math.round(byAlpha ? a : Math.min(1, (1 - lum) * 1.5) * a);
+        }
+        x.putImageData(d, 0, 0);
+        const out = c.toDataURL("image/png");
+        glyphs.set(url, out);
+        return out;
+      }
+      function makeIcon(spec, onfail) {
+        if (spec.fa) {
+          const i = document.createElement("i");
+          i.className = spec.fa;
+          return i;
+        }
+        const s = document.createElement("span");
+        s.className = "glyph";
+        glyph(spec.img)
+          .then((g) => s.style.setProperty("--g", `url(${g})`))
+          .catch(() => {
+            s.remove();
+            onfail && onfail();
+          });
+        return s;
+      }
+
+      /* ---------- library ---------- */
+      function parseCSV(text) {
+        const rows = [];
+        let row = [],
+          cell = "",
+          q = false;
+        for (let i = 0; i < text.length; i++) {
+          const c = text[i];
+          if (q) {
+            if (c === '"') {
+              if (text[i + 1] === '"') {
+                cell += '"';
+                i++;
+              } else q = false;
+            } else cell += c;
+          } else if (c === '"') q = true;
+          else if (c === ",") {
+            row.push(cell);
+            cell = "";
+          } else if (c === "\n" || c === "\r") {
+            if (c === "\r" && text[i + 1] === "\n") i++;
+            row.push(cell);
+            rows.push(row);
+            row = [];
+            cell = "";
+          } else cell += c;
+        }
+        if (cell || row.length) {
+          row.push(cell);
+          rows.push(row);
+        }
+        return rows;
+      }
+      async function loadBooks() {
+        $("libprog").hidden = false;
+        try {
+          const res = await fetch(SHEET_CSV_URL);
+          if (!res.ok) throw new Error(res.status);
+          const [head, ...rows] = parseCSV(await res.text());
+          const keys = head.map((h) => h.trim().toLowerCase());
+          BOOKS = rows
+            .filter((r) => r.some((c) => c.trim()))
+            .map((r) => {
+              const o = {};
+              keys.forEach((k, i) => (o[k] = (r[i] || "").trim()));
+              return {
+                category: o.category || "Library",
+                title: o.title || "Magazine",
+                sub: o.sub || "",
+                author: o.author || "",
+                color: o.color || "#a23b4a",
+                driveId: o.driveid,
+                pdf: o.pdf,
+                cover: coverUrl(o),
+                ...iconFields(o),
+                uid: o.id || o.uniqueid || o.uid || o.driveid || o.pdf,
+                publisher: o.publisher || "",
+                language: o.language || "",
+                year: o.year || "",
+                pagesN: o.pages || "",
+                summary: o.summary || o.description || "",
+              };
+            });
+          const fa = {},
+            im = {}; // Font Awesome first, uploaded image as the fallback
+          BOOKS.forEach((b) => {
+            if (b.icon && !fa[b.category]) fa[b.category] = b.icon;
+            if (b.iconImg && !im[b.category]) im[b.category] = b.iconImg;
+          });
+          BOOKS.forEach((b) => {
+            CAT_ICON[b.category] = fa[b.category]
+              ? { fa: fa[b.category] }
+              : im[b.category]
+                ? { img: im[b.category] }
+                : null;
+          });
+          renderShelves();
+          route();
+        } catch (err) {
+          console.error(err);
+          $("shelves").innerHTML =
+            `<p class="empty">Couldn't load the library. Please try again later.</p>`;
+        } finally {
+          $("libprog").hidden = true;
+        }
+      }
+      function coverEl(b) {
+        const wrap = document.createElement("span");
+        wrap.className = "b3d";
+        wrap.innerHTML = `<span class="pages"></span><span class="cover"><span class="ph"><b></b><span></span></span></span>`;
+        const cv = wrap.querySelector(".cover");
         cv.style.setProperty("--c", b.color);
-        el.querySelector(".ph b").textContent = b.title;
-        el.querySelector(".ph span").textContent = b.sub;
-        el.querySelector(".ct").textContent = b.title;
-        el.querySelector(".cs").textContent = [b.sub, b.author]
-          .filter(Boolean)
-          .join(" · ");
+        wrap.querySelector(".ph b").textContent = b.title;
+        wrap.querySelector(".ph span").textContent = b.sub;
         if (b.cover) {
           cv._load = () => {
             const im = new Image();
             im.alt = "";
-            im.referrerPolicy = "no-referrer";
             im.onerror = () => im.remove();
             cv.appendChild(im);
             loadCover(im, b.cover);
           };
           io.observe(cv); // fetch the cover only when it is near the screen
         }
-        el.onclick = () => openBook(b);
+        return wrap;
+      }
+      function makeCard(b) {
+        const el = document.createElement("button");
+        el.className = "card";
+        el.setAttribute("aria-label", `${b.title}, ${b.sub}`);
+        const ct = document.createElement("span"),
+          cs = document.createElement("span");
+        ct.className = "ct";
+        ct.textContent = b.title;
+        cs.className = "cs";
+        cs.textContent = [b.sub, b.author].filter(Boolean).join(" · ");
+        el.append(coverEl(b), ct, cs);
+        el.onclick = () => go(`#read=${encodeURIComponent(b.uid)}`);
         return el;
       }
-      const ARROW = (d) =>
-        `<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="${d}"/></svg>`;
       function makeCarousel(nodes) {
         const car = document.createElement("div");
         car.className = "car";
         car.innerHTML = `<div class="track"></div>
-    <button class="nav prev" aria-label="Previous">${ARROW("M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z")}</button>
-    <button class="nav next" aria-label="Next">${ARROW("M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z")}</button>`;
+    <button class="ibtn nav prev" aria-label="Previous"><svg class="i"><use href="#i-left"/></svg></button>
+    <button class="ibtn nav next" aria-label="Next"><svg class="i"><use href="#i-right"/></svg></button>`;
         const track = car.querySelector(".track"),
           prev = car.querySelector(".prev"),
           next = car.querySelector(".next");
@@ -1174,21 +1604,17 @@
             const t = document.createElement("button");
             t.className = "tile";
             t.innerHTML = `<span class="ti"></span><span class="tn"></span><span class="tc">Books: <b></b></span>`;
-            t.querySelector(".ti").style.background =
-              PALETTE[i % PALETTE.length];
             const ti = t.querySelector(".ti"),
               letter = [...name][0].toUpperCase(),
               spec = CAT_ICON[name];
-            if (spec && spec.fa) ti.appendChild(makeIcon(spec));
-            else if (spec && spec.img) {
-              ti.classList.add("img");
-              const ic = makeIcon(spec);
-              ic.onerror = () => {
-                ti.classList.remove("img");
-                ti.textContent = letter;
-              };
-              ti.appendChild(ic);
-            } else ti.textContent = letter;
+            ti.style.background = PALETTE[i % PALETTE.length];
+            if (spec)
+              ti.appendChild(
+                makeIcon(spec, () => {
+                  ti.textContent = letter;
+                }),
+              );
+            else ti.textContent = letter;
             t.querySelector(".tn").textContent = name;
             t.querySelector("b").textContent = BOOKS.filter(
               (b) => b.category === name,
@@ -1207,7 +1633,7 @@
           sec.className = "cat";
           sec.id = "cat-" + all.indexOf(name);
           if (s) sec.dataset.open = "1"; // while searching, show every match
-          sec.innerHTML = `<div class="cat-h"><h2></h2><button class="va">View All</button></div>`;
+          sec.innerHTML = `<div class="cat-h"><h2></h2><button class="btn tonal va">View All</button></div>`;
           const h2 = sec.querySelector("h2");
           if (CAT_ICON[name]) h2.append(makeIcon(CAT_ICON[name]), " " + name);
           else h2.textContent = name;
@@ -1220,8 +1646,8 @@
         });
         updateCarousels();
       }
-      // "View All" only appears when a row overflows; it turns the carousel into a full grid
       function updateCarousels() {
+        // "View All" only appears when a row overflows
         const searching = !!$("q").value.trim();
         document.querySelectorAll(".cat").forEach((sec) => {
           const track = sec.querySelector(".track"),
@@ -1235,11 +1661,134 @@
       }
       $("q").oninput = renderShelves;
 
+      /* ---------- navigation: #read=<id> = details, #read=<id>&page=<n> = reader ---------- */
+      const syncLock = () =>
+        document.documentElement.classList.toggle(
+          "lock",
+          detailOpen || readerOn,
+        );
+      const linkFor = (uid, page) =>
+        `${location.origin}${location.pathname}#read=${encodeURIComponent(uid)}${page ? `&page=${page}` : ""}`;
+      function parseHash() {
+        const m = location.hash.match(/^#read=([^&]+)(?:&page=(\d+))?/);
+        return m
+          ? { id: decodeURIComponent(m[1]), page: m[2] ? +m[2] : null }
+          : null;
+      }
+      function go(h) {
+        history.pushState({ app: 1 }, "", h);
+        route();
+      }
+      function route() {
+        const h = parseHash(),
+          b = h && BOOKS.find((x) => x.uid === h.id);
+        if (!b) {
+          hideDetail();
+          if (readerOn) teardown();
+          return;
+        }
+        if (h.page != null) {
+          hideDetail();
+          if (!readerOn || curId !== b.uid) openBook(b, h.page - 1);
+        } else {
+          if (readerOn) teardown();
+          showDetail(b);
+        }
+      }
+      const fromHome = () => {
+        history.replaceState(null, "", location.pathname + location.search);
+        route();
+      };
+      function closeDetail() {
+        if (history.state && history.state.app) history.back();
+        else fromHome();
+      }
+      function closeReader() {
+        if (history.state && history.state.app) history.back();
+        else if (curId) {
+          history.replaceState(null, "", `#read=${encodeURIComponent(curId)}`);
+          route();
+        } else fromHome();
+      }
+      addEventListener("popstate", route);
+
+      async function share(title, url) {
+        try {
+          if (navigator.share) {
+            await navigator.share({ title, url });
+            return;
+          }
+        } catch (e) {
+          if (e.name === "AbortError") return;
+        }
+        try {
+          await navigator.clipboard.writeText(url);
+          snack("Link copied");
+        } catch (e) {
+          prompt("Copy this link", url);
+        }
+      }
+      function snack(msg) {
+        const s = $("snack");
+        s.textContent = msg;
+        s.classList.add("on");
+        clearTimeout(s._t);
+        s._t = setTimeout(() => s.classList.remove("on"), 2400);
+      }
+
+      /* ---------- book details dialog ---------- */
+      const FIELDS = [
+        ["author", "Authors", "fa-user-pen"],
+        ["publisher", "Publisher", "fa-building-columns"],
+        ["category", "Genre", "fa-tags"],
+        ["language", "Language", "fa-language"],
+        ["sub", "Issue", "fa-bookmark"],
+        ["year", "Year", "fa-calendar-days"],
+        ["pagesN", "Pages", "fa-file-lines"],
+      ];
+      function showDetail(b) {
+        $("dtitle").textContent = b.title;
+        const rows = $("drows");
+        rows.innerHTML = "";
+        FIELDS.forEach(([k, label, ic]) => {
+          if (!b[k]) return;
+          const r = document.createElement("div");
+          r.className = "d-row";
+          r.innerHTML = `<i class="fa-solid ${ic}"></i><span class="dl"></span><b class="dv"></b>`;
+          r.querySelector(".dl").textContent = label;
+          r.querySelector(".dv").textContent = b[k];
+          rows.appendChild(r);
+        });
+        $("dcover").innerHTML = "";
+        $("dcover").appendChild(coverEl(b));
+        $("dsumwrap").hidden = !b.summary;
+        $("dsum").textContent = b.summary;
+        $("dread").onclick = () =>
+          go(`#read=${encodeURIComponent(b.uid)}&page=1`);
+        $("dshare").onclick = () =>
+          share(`${b.title} — ${b.sub}`, linkFor(b.uid));
+        $("detail").hidden = false;
+        detailOpen = true;
+        syncLock();
+        $("dread").focus();
+      }
+      function hideDetail() {
+        if (!detailOpen) return;
+        $("detail").hidden = true;
+        detailOpen = false;
+        syncLock();
+      }
+      $("dclose").onclick = closeDetail;
+      $("detail").addEventListener("click", (e) => {
+        if (e.target === $("detail")) closeDetail();
+      });
+
       /* ---------- reader ---------- */
-      function showMsg(text, pct) {
+      function showMsg(text, pct, err) {
         $("msg").classList.remove("hide");
         $("mtxt").textContent = text;
-        $("prog").style.display = pct == null ? "none" : "block";
+        $("mspin").hidden = $("prog").hidden = !!err;
+        $("prog").className = "linear" + (pct == null ? " ind" : "");
         if (pct != null) $("prog").firstElementChild.style.width = pct + "%";
       }
       function destroyFlip() {
@@ -1256,16 +1805,15 @@
         pages = [];
         pageEls = [];
       }
-
-      // width of one page when the whole book fits the stage exactly (no scrollbars)
       function fitWidth() {
+        // page width at which the whole book fits the stage (no scrollbars)
         const st = $("stage"),
           W = st.clientWidth - PAD,
           H = st.clientHeight - PAD;
         return Math.min(W < 720 ? W : W / 2, H * ratio);
       }
       function fill(d, i) {
-        // image, spinner (still rendering) or error text
+        // image, spinner (still rendering) or error + retry
         d.innerHTML = "";
         if (pages[i]) {
           const im = new Image();
@@ -1276,13 +1824,15 @@
           return;
         }
         const s = document.createElement("span");
-        if (pages[i] === null) s.className = "spin";
-        else {
+        if (pages[i] === null) {
+          s.className = "spin";
+          s.innerHTML = SPIN;
+        } else {
           s.className = "fail";
           const m = document.createElement("span");
           m.textContent = "Couldn't load this page";
           const bt = document.createElement("button");
-          bt.className = "retry";
+          bt.className = "btn filled retry";
           bt.textContent = "Retry";
           bt.onclick = () => retryHook && retryHook(i);
           ["mousedown", "touchstart", "pointerdown"].forEach((ev) =>
@@ -1291,6 +1841,9 @@
           s.append(m, bt);
         }
         d.appendChild(s);
+      }
+      function showPage(i) {
+        if (pageEls[i]) fill(pageEls[i], i);
       }
       function build(start) {
         destroyFlip();
@@ -1335,6 +1888,13 @@
         });
         updateUI();
       }
+      function setSeek(v) {
+        const n = pages.length;
+        $("seek").style.setProperty(
+          "--p",
+          (n > 1 ? ((v - 1) / (n - 1)) * 100 : 0) + "%",
+        );
+      }
       function updateUI() {
         if (!flip) return;
         cur = Math.min(flip.getCurrentPageIndex(), pages.length - 1);
@@ -1346,6 +1906,7 @@
           );
         $("seek").value = cur + 1;
         $("goto").value = cur + 1;
+        setSeek(cur + 1);
         $("prev").disabled = cur <= 0;
         $("next").disabled = cur >= pages.length - 1;
         $("zval").textContent = Math.round(zoom * 100) + "%";
@@ -1369,7 +1930,10 @@
         freePages();
         zoom = 1;
         cur = Math.max(0, start);
-        document.documentElement.classList.add("lock");
+        readerOn = true;
+        curId = b.uid;
+        curBook = b;
+        syncLock();
         $("reader").classList.remove("ready");
         $("reader").classList.add("on");
         $("rtitle").textContent = `${b.title} — ${b.sub}`;
@@ -1378,11 +1942,6 @@
         showMsg("Opening the issue…", 0);
 
         const id = b.driveId || b.pdf;
-        curId = b.uid;
-        const hash = `#read=${encodeURIComponent(b.uid)}&page=${cur + 1}`;
-        if (history.state && history.state.r)
-          history.replaceState(history.state, "", hash);
-        else history.pushState({ r: 1 }, "", hash); // so the phone's Back button closes the reader
         const url =
           b.pdf ||
           `https://www.googleapis.com/drive/v3/files/${b.driveId}?alt=media&key=${DRIVE_API_KEY}`;
@@ -1402,18 +1961,25 @@
           pdfP = null;
         const getPdf = () =>
           pdfP ||
-          (pdfP = (() => {
-            // the PDF is only downloaded if some page isn't cached
+          (pdfP = (async () => {
+            // only downloaded if some page isn't cached
+            if (PROXY_URL && b.driveId && !b.pdf) {
+              if (!revealed) showMsg("Downloading the issue…");
+              const blob = await proxyBlob(b.driveId, "file");
+              return await pdfjsLib.getDocument({
+                data: new Uint8Array(await blob.arrayBuffer()),
+              }).promise;
+            }
             const task = pdfjsLib.getDocument({ url });
             task.onProgress = (p) => {
               if (!revealed && my === token && p.total)
                 showMsg("Downloading the issue…", (p.loaded / p.total) * 100);
             };
-            return task.promise.catch((e) => {
-              pdfP = null;
-              throw e;
-            });
-          })());
+            return await task.promise;
+          })().catch((e) => {
+            pdfP = null;
+            throw e;
+          }));
         const renderOne = async (i) => {
           let blob = await cacheGet(pageKey(id, target, i));
           if (blob) return blob;
@@ -1473,8 +2039,8 @@
           $("total").textContent = meta.n;
           const K = Math.min(2, meta.n);
           let done = 0;
-          // next page to render: closest to where the reader is (slightly favouring forward)
           const next = () => {
+            // page closest to the reader's position, slightly favouring forward
             let best = -1,
               bd = Infinity;
             for (let i = 0; i < pages.length; i++)
@@ -1495,7 +2061,7 @@
               blob = await renderRetry(i);
             } catch (e) {
               console.error(e);
-              if (!revealed) throw e; // nothing to show yet: report the error
+              if (!revealed) throw e;
               if (my !== token) return;
               pages[i] = "";
               showPage(i);
@@ -1506,50 +2072,45 @@
             done++;
             if (revealed) showPage(i);
             else if (done >= K) {
-              // first pages are ready: open the book now
               revealed = true;
               $("msg").classList.add("hide");
               $("reader").classList.add("ready");
               build(cur);
             } else showMsg(`Loading page ${done} of ${K}`, (done / K) * 100);
-            $("bg").classList.toggle("done", done >= meta.n); // thin bar = background loading of the rest
+            $("bg").classList.toggle("done", done >= meta.n); // thin bar = the rest loads in the background
             $("bg").firstElementChild.style.width = (done / meta.n) * 100 + "%";
           }
         } catch (err) {
           console.error(err);
           if (my === token) {
             destroyFlip();
-            showMsg("Couldn't load this issue. Please try again later.");
+            showMsg(
+              "Couldn't load this issue. Please try again later.",
+              null,
+              true,
+            );
           }
         }
-      }
-      function showPage(i) {
-        if (pageEls[i]) fill(pageEls[i], i);
       }
       function teardown() {
         token++;
         retryHook = null;
         curId = null;
+        curBook = null;
         destroyFlip();
         freePages();
         $("reader").classList.remove("on", "ready");
-        document.documentElement.classList.remove("lock");
-        if (location.hash)
-          history.replaceState(
-            history.state,
-            "",
-            location.pathname + location.search,
-          );
+        readerOn = false;
+        syncLock();
       }
-      function closeReader() {
-        if (history.state && history.state.r) history.back();
-        else teardown();
-      }
-      addEventListener("popstate", () => {
-        if (!(history.state && history.state.r)) teardown();
-      });
 
       $("close").onclick = closeReader;
+      $("rshare").onclick = () =>
+        curBook &&
+        share(
+          `${curBook.title} — ${curBook.sub} (page ${cur + 1})`,
+          linkFor(curId, cur + 1),
+        );
       $("prev").onclick = () => flip && flip.flipPrev();
       $("next").onclick = () => flip && flip.flipNext();
       $("zin").onclick = () =>
@@ -1563,12 +2124,12 @@
       };
       $("seek").oninput = (e) => {
         $("goto").value = e.target.value;
+        setSeek(+e.target.value);
       };
       $("seek").onchange = (e) => goTo(e.target.value);
 
-      // mouse drag to pan when zoomed (touch uses native scrolling)
       let drag = null;
-      const stage = $("stage");
+      const stage = $("stage"); // mouse drag to pan when zoomed (touch uses native scrolling)
       stage.addEventListener("pointerdown", (e) => {
         if (zoom <= 1 || e.pointerType !== "mouse" || e.button !== 0) return;
         drag = {
@@ -1593,9 +2154,12 @@
       );
 
       addEventListener("keydown", (e) => {
-        if (!$("reader").classList.contains("on")) return;
-        if (e.key === "Escape") return closeReader();
-        if (e.target.tagName === "INPUT") return;
+        if (e.key === "Escape") {
+          if (readerOn) closeReader();
+          else if (detailOpen) closeDetail();
+          return;
+        }
+        if (!readerOn || e.target.tagName === "INPUT") return;
         if (e.key === "ArrowLeft" && flip) flip.flipPrev();
         if (e.key === "ArrowRight" && flip) flip.flipNext();
         if ((e.key === "+" || e.key === "=") && !$("zin").disabled)
@@ -1604,12 +2168,12 @@
       });
       let rz;
       addEventListener("resize", () => {
+        updateCarousels();
         clearTimeout(rz);
         rz = setTimeout(() => {
           if (flip && pages.length) build(cur);
         }, 250);
       });
-      addEventListener("resize", updateCarousels);
       addEventListener(
         "scroll",
         () => {
