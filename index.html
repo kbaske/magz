@@ -1204,8 +1204,14 @@
     <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
     <script>
       /* ===== EDIT THIS PART ===== */
-      // Google Cloud API key with "Google Drive API" enabled. Works ONLY for files shared as "Anyone with the link".
-      const DRIVE_API_KEY = "AIzaSyBAfeEO3OWZqrnGMqoYO5r9cPPcT5CLZSg";
+      // Google Cloud API keys with "Google Drive API" enabled. Add as many as you like: they are used in turn and, when one
+      // hits its quota or is rejected, the next one takes over. Works ONLY for files shared as "Anyone with the link".
+      const DRIVE_API_KEYS = [
+        "AIzaSyBAfeEO3OWZqrnGMqoYO5r9cPPcT5CLZSg",
+        "AIzaSyA3B1P4HynEwJ-VhFdCT6ZCIw764hW_EVk",
+        "AIzaSyB6ivUglLg1CAePam6vJv_HEJmbjL3fQII",
+        // "PASTE_THIRD_KEY",
+      ];
       // Published CSV link of your Google Sheet (Share → Publish to web → pick the tab → CSV).
       // Sheet columns (row 1 = headers): id, category, title, sub, author, publisher, language, year, pages, summary,
       //                                  color, driveId, pdf, cover, icon, iconImg
@@ -1296,6 +1302,29 @@
         `https://cache.local/p/${encodeURIComponent(id)}/${w}/${i}`;
 
       /* ---------- Drive access: API key (public files) or Apps Script proxy (private files) ---------- */
+      const KEYS = DRIVE_API_KEYS.filter((k) => k && !/^(PASTE|YOUR)/i.test(k));
+      let keyIdx = Math.floor(Math.random() * Math.max(1, KEYS.length)); // spread visitors over the keys
+      const driveApiUrl = (id, k) =>
+        `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${k || ""}`;
+      const statusOf = (e) =>
+        e && (e.status || (String(e.message).match(/\((\d{3})\)/) || [])[1]);
+      async function withKey(fn) {
+        // run fn(key); on quota/key errors (400/401/403/429) try the next key
+        const n = Math.max(1, KEYS.length);
+        let last;
+        for (let i = 0; i < n; i++) {
+          const at = (keyIdx + i) % n;
+          try {
+            const r = await fn(KEYS[at]);
+            keyIdx = at;
+            return r;
+          } catch (e) {
+            last = e;
+            if (![400, 401, 403, 429].includes(+statusOf(e))) throw e;
+          }
+        }
+        throw last;
+      }
       const driveThumb = (id, w = 500) =>
         `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`;
       const imgSrc = (id, w) => (PROXY_URL ? `proxy:${id}` : driveThumb(id, w));
@@ -1325,7 +1354,7 @@
         if (!v) return "";
         const m = v.match(/[-\w]{25,}/);
         if (m && (/drive\.google\.com/.test(v) || /^[-\w]{25,}$/.test(v)))
-          return `https://www.googleapis.com/drive/v3/files/${m[0]}?alt=media&key=${DRIVE_API_KEY}`;
+          return `driveapi:${m[0]}`;
         return driveImg(v, 160);
       }
       function coverUrl(o) {
@@ -1337,12 +1366,32 @@
         // cached object URL, or the raw URL if it can't be fetched
         if (objURLs.has(url)) return objURLs.get(url);
         const px = url.startsWith("proxy:"),
-          key = px ? `https://cache.local/c/${url.slice(6)}` : url;
+          da = url.startsWith("driveapi:");
+        const key = px
+          ? `https://cache.local/c/${url.slice(6)}`
+          : da
+            ? `https://cache.local/i/${url.slice(9)}`
+            : url;
         let blob = await cacheGet(key);
         if (!blob) {
           try {
             if (px) blob = await proxyBlob(url.slice(6), "thumb");
-            else {
+            else if (da) {
+              // public Drive file through the API keys (CORS-friendly)
+              blob = await withKey(async (k) => {
+                const r = await fetch(driveApiUrl(url.slice(9), k), {
+                  mode: "cors",
+                });
+                if (!r.ok) {
+                  const e = new Error("HTTP " + r.status);
+                  e.status = r.status;
+                  throw e;
+                }
+                return r.blob();
+              });
+              if (!blob.type.startsWith("image/"))
+                throw new Error("not an image");
+            } else {
               const res = await fetch(url, { mode: "cors" });
               if (!res.ok) throw new Error(res.status);
               blob = await res.blob();
@@ -1351,9 +1400,10 @@
             }
             cachePut(key, blob);
           } catch (e) {
+            // fall back to a plain <img>, browser cache applies
             if (px) throw e;
-            return url;
-          } // CORS blocked: plain <img>, browser cache applies
+            return da ? driveApiUrl(url.slice(9), KEYS[keyIdx]) : url;
+          }
         }
         const u = URL.createObjectURL(blob);
         objURLs.set(url, u);
@@ -1995,9 +2045,6 @@
         showMsg("Opening the issue…", 0);
 
         const id = b.driveId || b.pdf;
-        const url =
-          b.pdf ||
-          `https://www.googleapis.com/drive/v3/files/${b.driveId}?alt=media&key=${DRIVE_API_KEY}`;
         // render size: sharp on retina screens and at 300% zoom; bucketed so cached pages are reused
         const dpr = Math.min(window.devicePixelRatio || 1, 3),
           cap = innerWidth < 720 ? 1800 : 2400;
@@ -2023,12 +2070,17 @@
                 data: new Uint8Array(await blob.arrayBuffer()),
               }).promise;
             }
-            const task = pdfjsLib.getDocument({ url });
-            task.onProgress = (p) => {
-              if (!revealed && my === token && p.total)
-                showMsg("Downloading the issue…", (p.loaded / p.total) * 100);
+            const attempt = (k) => {
+              const task = pdfjsLib.getDocument({
+                url: b.pdf || driveApiUrl(b.driveId, k),
+              });
+              task.onProgress = (p) => {
+                if (!revealed && my === token && p.total)
+                  showMsg("Downloading the issue…", (p.loaded / p.total) * 100);
+              };
+              return task.promise;
             };
-            return await task.promise;
+            return await (b.pdf ? attempt() : withKey(attempt)); // tries every API key before giving up
           })().catch((e) => {
             pdfP = null;
             throw e;
