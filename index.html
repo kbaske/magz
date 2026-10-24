@@ -1210,6 +1210,7 @@
         "AIzaSyBAfeEO3OWZqrnGMqoYO5r9cPPcT5CLZSg",
         "AIzaSyA3B1P4HynEwJ-VhFdCT6ZCIw764hW_EVk",
         "AIzaSyB6ivUglLg1CAePam6vJv_HEJmbjL3fQII",
+        // "PASTE_SECOND_KEY",
         // "PASTE_THIRD_KEY",
       ];
       // Published CSV link of your Google Sheet (Share → Publish to web → pick the tab → CSV).
@@ -1217,8 +1218,10 @@
       //                                  color, driveId, pdf, cover, icon, iconImg
       const SHEET_CSV_URL =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vTREzHC7NabWD51Mn0I_6_uZpdd-LnaCFCfl7XWJxcwpTDrrCFJF33iVedZBcGrx1f6HO97IMucQ1bw/pub?gid=0&single=true&output=csv";
-      // OPTIONAL: Apps Script web-app URL that serves your PRIVATE Drive files (see instructions). Leave "" to use the API key.
-      const PROXY_URL = "";
+      // Apps Script web-app URL that serves your PRIVATE Drive files (PDFs, covers, icons) - nothing needs to be shared.
+      // Leave "" only if your files are shared as "Anyone with the link" (then the API keys above are used).
+      const PROXY_URL =
+        "https://script.google.com/macros/s/AKfycbw2KHoHiqk-U2wSdrBPtOYYrVVnFJY648e65VAk8gCWVeqU7UY9781FT4fn-lkChCMA/exec";
       // Website name used in the title bar and in shared messages.
       const SITE_NAME = "Magazine";
       /* ========================== */
@@ -1307,7 +1310,10 @@
       const driveApiUrl = (id, k) =>
         `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${k || ""}`;
       const statusOf = (e) =>
-        e && (e.status || (String(e.message).match(/\((\d{3})\)/) || [])[1]);
+        e &&
+        (e.name === "MissingPDFException"
+          ? 404
+          : e.status || (String(e.message).match(/\((\d{3})\)/) || [])[1]);
       async function withKey(fn) {
         // run fn(key); on quota/key errors (400/401/403/429) try the next key
         const n = Math.max(1, KEYS.length);
@@ -1328,16 +1334,67 @@
       const driveThumb = (id, w = 500) =>
         `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`;
       const imgSrc = (id, w) => (PROXY_URL ? `proxy:${id}` : driveThumb(id, w));
-      async function proxyBlob(id, kind) {
-        const r = await fetch(
-          `${PROXY_URL}?id=${encodeURIComponent(id)}&kind=${kind}`,
-        );
-        const j = await r.json();
-        if (j.error) throw new Error(j.error);
-        const bin = atob(j.data),
+      const b64ToBytes = (s) => {
+        const bin = atob(s),
           u8 = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-        return new Blob([u8], { type: j.mime });
+        return u8;
+      };
+      async function proxyJSON(id, kind, i = 0) {
+        let r, txt;
+        try {
+          r = await fetch(
+            `${PROXY_URL}?id=${encodeURIComponent(id)}&kind=${kind}&i=${i}`,
+          );
+          txt = await r.text();
+        } catch (e) {
+          throw new Error(
+            "Can't reach the proxy. Check PROXY_URL and that it is deployed as a web app.",
+          );
+        }
+        let j;
+        try {
+          j = JSON.parse(txt);
+        } catch (e) {
+          throw new Error(
+            "The proxy sent a web page instead of data. Deploy it with “Execute as: Me” and “Who has access: Anyone”.",
+          );
+        }
+        if (j.error) throw new Error("Proxy: " + j.error);
+        return j;
+      }
+      async function proxyBlob(id, kind) {
+        // small files: covers, icons
+        const j = await proxyJSON(id, kind);
+        return new Blob([b64ToBytes(j.data)], { type: j.mime });
+      }
+      async function proxyFile(id, onProgress) {
+        // PDFs arrive in 3 MB parts, 3 at a time
+        const first = await proxyJSON(id, "file", 0),
+          n = first.parts,
+          out = new Array(n);
+        out[0] = b64ToBytes(first.data);
+        let done = 1,
+          next = 1;
+        onProgress && onProgress(done / n);
+        await Promise.all(
+          Array.from({ length: Math.min(3, n - 1) }, async () => {
+            while (next < n) {
+              const i = next++,
+                j = await proxyJSON(id, "file", i);
+              out[i] = b64ToBytes(j.data);
+              done++;
+              onProgress && onProgress(done / n);
+            }
+          }),
+        );
+        const bytes = new Uint8Array(out.reduce((s, x) => s + x.length, 0));
+        let at = 0;
+        out.forEach((x) => {
+          bytes.set(x, at);
+          at += x.length;
+        });
+        return bytes;
       }
       function driveImg(v, w) {
         // Drive link / file ID / image URL -> loadable source
@@ -1349,12 +1406,11 @@
           ? v
           : ""; // web URL or a file kept in the repo (e.g. icons/quill.png)
       }
-      // Category icons are always read straight from Drive (never through the proxy): share just the icon files as "Anyone with the link"
       function iconSrc(v) {
         if (!v) return "";
         const m = v.match(/[-\w]{25,}/);
         if (m && (/drive\.google\.com/.test(v) || /^[-\w]{25,}$/.test(v)))
-          return `driveapi:${m[0]}`;
+          return `icon:${m[0]}`; // private icons go through the proxy, public ones through the API keys
         return driveImg(v, 160);
       }
       function coverUrl(o) {
@@ -1362,36 +1418,45 @@
         return o.driveid ? imgSrc(o.driveid, 500) : "";
       }
       const objURLs = new Map(); // source -> object url (reused across re-renders)
+      async function apiBlob(id) {
+        // public Drive file through the API keys (CORS-friendly)
+        const blob = await withKey(async (k) => {
+          const r = await fetch(driveApiUrl(id, k), { mode: "cors" });
+          if (!r.ok) {
+            const e = new Error("HTTP " + r.status);
+            e.status = r.status;
+            throw e;
+          }
+          return r.blob();
+        });
+        if (!blob.type.startsWith("image/")) throw new Error("not an image");
+        return blob;
+      }
       async function imageSrc(url) {
-        // cached object URL, or the raw URL if it can't be fetched
+        // cached object URL, or a raw URL if it can't be fetched
         if (objURLs.has(url)) return objURLs.get(url);
-        const px = url.startsWith("proxy:"),
-          da = url.startsWith("driveapi:");
-        const key = px
-          ? `https://cache.local/c/${url.slice(6)}`
-          : da
-            ? `https://cache.local/i/${url.slice(9)}`
-            : url;
+        const kind = url.startsWith("proxy:")
+          ? "proxy"
+          : url.startsWith("driveapi:")
+            ? "api"
+            : url.startsWith("icon:")
+              ? "icon"
+              : "url";
+        const id = kind === "url" ? "" : url.slice(url.indexOf(":") + 1);
+        const key =
+          kind === "url"
+            ? url
+            : `https://cache.local/${kind === "proxy" ? "c" : "i"}/${id}`;
         let blob = await cacheGet(key);
         if (!blob) {
           try {
-            if (px) blob = await proxyBlob(url.slice(6), "thumb");
-            else if (da) {
-              // public Drive file through the API keys (CORS-friendly)
-              blob = await withKey(async (k) => {
-                const r = await fetch(driveApiUrl(url.slice(9), k), {
-                  mode: "cors",
-                });
-                if (!r.ok) {
-                  const e = new Error("HTTP " + r.status);
-                  e.status = r.status;
-                  throw e;
-                }
-                return r.blob();
-              });
-              if (!blob.type.startsWith("image/"))
-                throw new Error("not an image");
-            } else {
+            if (kind === "proxy") blob = await proxyBlob(id, "thumb");
+            else if (kind === "api") blob = await apiBlob(id);
+            else if (kind === "icon")
+              blob = PROXY_URL
+                ? await proxyBlob(id, "thumb").catch(() => apiBlob(id))
+                : await apiBlob(id);
+            else {
               const res = await fetch(url, { mode: "cors" });
               if (!res.ok) throw new Error(res.status);
               blob = await res.blob();
@@ -1400,9 +1465,8 @@
             }
             cachePut(key, blob);
           } catch (e) {
-            // fall back to a plain <img>, browser cache applies
-            if (px) throw e;
-            return da ? driveApiUrl(url.slice(9), KEYS[keyIdx]) : url;
+            if (kind === "proxy") throw e;
+            return kind === "url" ? url : driveApiUrl(id, KEYS[keyIdx]); // plain <img>; browser cache applies
           }
         }
         const u = URL.createObjectURL(blob);
@@ -2065,10 +2129,11 @@
             // only downloaded if some page isn't cached
             if (PROXY_URL && b.driveId && !b.pdf) {
               if (!revealed) showMsg("Downloading the issue…");
-              const blob = await proxyBlob(b.driveId, "file");
-              return await pdfjsLib.getDocument({
-                data: new Uint8Array(await blob.arrayBuffer()),
-              }).promise;
+              const bytes = await proxyFile(b.driveId, (f) => {
+                if (!revealed && my === token)
+                  showMsg("Downloading the issue…", f * 100);
+              });
+              return await pdfjsLib.getDocument({ data: bytes }).promise;
             }
             const attempt = (k) => {
               const task = pdfjsLib.getDocument({
@@ -2189,10 +2254,7 @@
           console.error(err);
           if (my === token) {
             destroyFlip();
-            const code =
-              err &&
-              (err.status ||
-                (String(err.message).match(/\((\d{3})\)/) || [])[1]);
+            const code = statusOf(err);
             let why = "Couldn't load this issue.";
             if (+code === 401 || +code === 403)
               why +=
@@ -2201,8 +2263,12 @@
                 "). With the API key the file must be shared as “Anyone with the link”, and the key must allow this website. For private files, set PROXY_URL.";
             else if (+code === 404)
               why +=
-                " File not found (HTTP 404). Check the driveId in the sheet.";
-            else if (err && err.message) why += " (" + err.message + ")";
+                " File not found (HTTP 404): the driveId is wrong, or the file is not shared as “Anyone with the link” (Drive reports private files as not found to visitors who aren't signed in).";
+            else if (err && err.message)
+              why +=
+                " (" +
+                String(err.message).replace(/https?:\/\/\S+/g, "…") +
+                ")"; // never print URLs (they contain the key)
             showMsg(why, null, true);
           }
         }
