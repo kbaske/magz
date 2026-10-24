@@ -1203,1170 +1203,1228 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
     <script>
-      /* ===== EDIT THIS PART ===== */
-      // Google Cloud API keys with "Google Drive API" enabled. Add as many as you like: they are used in turn and, when one
-      // hits its quota or is rejected, the next one takes over. Works ONLY for files shared as "Anyone with the link".
-      const DRIVE_API_KEYS = [
-        "AIzaSyBAfeEO3OWZqrnGMqoYO5r9cPPcT5CLZSg",
-        "AIzaSyA3B1P4HynEwJ-VhFdCT6ZCIw764hW_EVk",
-        "AIzaSyB6ivUglLg1CAePam6vJv_HEJmbjL3fQII",
-        // "PASTE_SECOND_KEY",
-        // "PASTE_THIRD_KEY",
-      ];
-      // Published CSV link of your Google Sheet (Share → Publish to web → pick the tab → CSV).
-      // Sheet columns (row 1 = headers): id, category, title, sub, author, publisher, language, year, pages, summary,
-      //                                  color, driveId, pdf, cover, icon, iconImg
-      const SHEET_CSV_URL =
-        "https://docs.google.com/spreadsheets/d/e/2PACX-1vTREzHC7NabWD51Mn0I_6_uZpdd-LnaCFCfl7XWJxcwpTDrrCFJF33iVedZBcGrx1f6HO97IMucQ1bw/pub?gid=0&single=true&output=csv";
-      // Apps Script web-app URL that serves your PRIVATE Drive files (PDFs, covers, icons) - nothing needs to be shared.
-      // Leave "" only if your files are shared as "Anyone with the link" (then the API keys above are used).
-      const PROXY_URL =
-        "https://script.google.com/macros/s/AKfycbw2KHoHiqk-U2wSdrBPtOYYrVVnFJY648e65VAk8gCWVeqU7UY9781FT4fn-lkChCMA/exec";
-      // Website name used in the title bar and in shared messages.
-      const SITE_NAME = "Magazine";
-      /* ========================== */
+        /* ===== EDIT THIS PART ===== */
+        // Google Cloud API keys with "Google Drive API" enabled. Add as many as you like: they are used in turn and, when one
+        // hits its quota or is rejected, the next one takes over. Works ONLY for files shared as "Anyone with the link".
+        const DRIVE_API_KEYS = [
+          "AIzaSyBAfeEO3OWZqrnGMqoYO5r9cPPcT5CLZSg",
+          "AIzaSyA3B1P4HynEwJ-VhFdCT6ZCIw764hW_EVk",
+          "AIzaSyB6ivUglLg1CAePam6vJv_HEJmbjL3fQII",
+          // "PASTE_SECOND_KEY",
+          // "PASTE_THIRD_KEY",
+        ];
+        // Published CSV link of your Google Sheet (Share → Publish to web → pick the tab → CSV).
+        // Sheet columns (row 1 = headers): id, category, title, sub, author, publisher, language, year, pages, summary,
+        //                                  color, driveId, pdf, cover, icon, iconImg
+        const SHEET_CSV_URL =
+          "https://docs.google.com/spreadsheets/d/e/2PACX-1vTREzHC7NabWD51Mn0I_6_uZpdd-LnaCFCfl7XWJxcwpTDrrCFJF33iVedZBcGrx1f6HO97IMucQ1bw/pub?gid=0&single=true&output=csv";
+        // Apps Script web-app URL that serves your PRIVATE Drive files (PDFs, covers, icons) - nothing needs to be shared.
+        // Leave "" only if your files are shared as "Anyone with the link" (then the API keys above are used).
+        const PROXY_URL = "https://script.google.com/macros/s/AKfycbw2KHoHiqk-U2wSdrBPtOYYrVVnFJY648e65VAk8gCWVeqU7UY9781FT4fn-lkChCMA/exec";
+        // More proxies when your files live in several Google accounts: deploy the script once per account and list every /exec URL.
+        // The page tries them in turn and remembers which one can read each file (sheet column "proxy" = 1, 2 ... can pick it directly).
+        const PROXY_URLS = [
+          // "https://script.google.com/macros/s/AKfy...account2.../exec",
+          // "https://script.google.com/macros/s/AKfy...account3.../exec",
+          "https://script.google.com/macros/s/AKfycbxBKlwjf1GO88LZeI9qqGV0S0bZgBo6P_TXIgVHfjezfwlfe2sOpwucwtTUxeAm8IE3NA/exec"
+          "https://script.google.com/macros/s/AKfycbzRpLtXXbMlXoY9CypxWMEviYIwc9_mOyfNXpNQbJcQ_hw2lMh33o2Yh-rfgg5cwcg/exec"
+        ];
+        // Website name used in the title bar and in shared messages.
+        const SITE_NAME = "Magazine";
+        /* ========================== */
 
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      const $ = (id) => document.getElementById(id);
-      const PALETTE = [
-        "#e8892b",
-        "#d95d4f",
-        "#2a9d9f",
-        "#d63a5c",
-        "#8e5cb8",
-        "#2fa58b",
-        "#4f6bd6",
-        "#6aa832",
-      ];
-      const ZOOMS = [1, 1.5, 2, 3],
-        PAD = 8;
-      const SPIN = `<svg class="circ" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/></svg>`;
-      let BOOKS = [],
-        flip = null,
-        token = 0,
-        pages = [],
-        pageEls = [],
-        ratio = 0.7,
-        zoom = 1,
-        cur = 0;
-      let curId = null,
-        curBook = null,
-        retryHook = null,
-        readerOn = false,
-        detailOpen = false;
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        const $ = (id) => document.getElementById(id);
+        const PROXIES = [PROXY_URL, ...PROXY_URLS].filter(
+          (u) => u && !/^(PASTE|YOUR)/i.test(u),
+        );
+        const PALETTE = [
+          "#e8892b",
+          "#d95d4f",
+          "#2a9d9f",
+          "#d63a5c",
+          "#8e5cb8",
+          "#2fa58b",
+          "#4f6bd6",
+          "#6aa832",
+        ];
+        const ZOOMS = [1, 1.5, 2, 3],
+          PAD = 8;
+        const SPIN = `<svg class="circ" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/></svg>`;
+        let BOOKS = [],
+          flip = null,
+          token = 0,
+          pages = [],
+          pageEls = [],
+          ratio = 0.7,
+          zoom = 1,
+          cur = 0;
+        let curId = null,
+          curBook = null,
+          retryHook = null,
+          readerOn = false,
+          detailOpen = false;
 
-      /* ---------- 2-hour cache (Cache Storage) ---------- */
-      const TTL = 2 * 60 * 60 * 1000,
-        CACHE = "magazine-v1";
-      async function cacheGet(key) {
-        try {
-          const c = await caches.open(CACHE),
-            r = await c.match(key);
-          if (!r) return null;
-          if (Date.now() - (+r.headers.get("x-cached-at") || 0) > TTL) {
-            c.delete(key);
+        /* ---------- 2-hour cache (Cache Storage) ---------- */
+        const TTL = 2 * 60 * 60 * 1000,
+          CACHE = "magazine-v1";
+        async function cacheGet(key) {
+          try {
+            const c = await caches.open(CACHE),
+              r = await c.match(key);
+            if (!r) return null;
+            if (Date.now() - (+r.headers.get("x-cached-at") || 0) > TTL) {
+              c.delete(key);
+              return null;
+            }
+            return await r.blob();
+          } catch (e) {
             return null;
           }
-          return await r.blob();
-        } catch (e) {
-          return null;
         }
-      }
-      async function cachePut(key, blob) {
+        async function cachePut(key, blob) {
+          try {
+            const c = await caches.open(CACHE);
+            await c.put(
+              key,
+              new Response(blob, {
+                headers: {
+                  "x-cached-at": String(Date.now()),
+                  "content-type": blob.type || "image/jpeg",
+                },
+              }),
+            );
+          } catch (e) {}
+        }
+        const metaKey = (id, w) => `mag:${id}:${w}`;
+        function readMeta(k) {
+          try {
+            const m = JSON.parse(localStorage.getItem(k));
+            return m && Date.now() - m.t < TTL ? m : null;
+          } catch (e) {
+            return null;
+          }
+        }
+        function writeMeta(k, m) {
+          try {
+            localStorage.setItem(k, JSON.stringify({ ...m, t: Date.now() }));
+          } catch (e) {}
+        }
+        const pageKey = (id, w, i) =>
+          `https://cache.local/p/${encodeURIComponent(id)}/${w}/${i}`;
+
+        /* ---------- Drive access: API key (public files) or Apps Script proxy (private files) ---------- */
+        const KEYS = DRIVE_API_KEYS.filter((k) => k && !/^(PASTE|YOUR)/i.test(k));
+        let keyIdx = Math.floor(Math.random() * Math.max(1, KEYS.length)); // spread visitors over the keys
+        const driveApiUrl = (id, k) =>
+          `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${k || ""}`;
+        const statusOf = (e) =>
+          e &&
+          (e.name === "MissingPDFException"
+            ? 404
+            : e.status || (String(e.message).match(/\((\d{3})\)/) || [])[1]);
+        async function withKey(fn) {
+          // run fn(key); on quota/key errors (400/401/403/429) try the next key
+          const n = Math.max(1, KEYS.length);
+          let last;
+          for (let i = 0; i < n; i++) {
+            const at = (keyIdx + i) % n;
+            try {
+              const r = await fn(KEYS[at]);
+              keyIdx = at;
+              return r;
+            } catch (e) {
+              last = e;
+              if (![400, 401, 403, 429].includes(+statusOf(e))) throw e;
+            }
+          }
+          throw last;
+        }
+        const driveThumb = (id, w = 500) =>
+          `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`;
+        const imgSrc = (id, w) =>
+          PROXIES.length ? `proxy:${id}` : driveThumb(id, w);
+        const b64ToBytes = (s) => {
+          const bin = atob(s),
+            u8 = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+          return u8;
+        };
+        async function proxyCall(base, id, kind, i) {
+          let r, txt;
+          try {
+            r = await fetch(
+              `${base}?id=${encodeURIComponent(id)}&kind=${kind}&i=${i}`,
+            );
+            txt = await r.text();
+          } catch (e) {
+            throw new Error(
+              "Can't reach the proxy. Check its address and that it is deployed as a web app.",
+            );
+          }
+          let j;
+          try {
+            j = JSON.parse(txt);
+          } catch (e) {
+            throw new Error(
+              "The proxy sent a web page instead of data. Deploy it with “Execute as: Me” and “Who has access: Anyone”.",
+            );
+          }
+          if (j.error) throw new Error("Proxy: " + j.error);
+          return j;
+        }
+        const fileProxy = new Map(); // file id -> proxy number chosen in the sheet's "proxy" column
+        let proxyOf = {};
         try {
-          const c = await caches.open(CACHE);
-          await c.put(
-            key,
-            new Response(blob, {
-              headers: {
-                "x-cached-at": String(Date.now()),
-                "content-type": blob.type || "image/jpeg",
-              },
+          proxyOf = JSON.parse(localStorage.getItem("mag:proxymap")) || {};
+        } catch (e) {}
+        async function proxyJSON(id, kind, i = 0) {
+          // tries each account's proxy until one can read the file
+          const n = PROXIES.length;
+          if (!n) throw new Error("No proxy is configured.");
+          const start = fileProxy.has(id)
+              ? fileProxy.get(id)
+              : (proxyOf[id] || 0) % n,
+            errs = [];
+          for (let t = 0; t < n; t++) {
+            const at = (start + t) % n;
+            try {
+              const j = await proxyCall(PROXIES[at], id, kind, i);
+              if (proxyOf[id] !== at) {
+                proxyOf[id] = at;
+                try {
+                  localStorage.setItem("mag:proxymap", JSON.stringify(proxyOf));
+                } catch (e) {}
+              }
+              return j;
+            } catch (e) {
+              errs.push(e.message);
+            }
+          }
+          throw new Error(
+            n > 1
+              ? "No proxy could read this file: " + [...new Set(errs)].join(" | ")
+              : errs[0],
+          );
+        }
+        async function proxyBlob(id, kind) {
+          // small files: covers, icons
+          const j = await proxyJSON(id, kind);
+          return new Blob([b64ToBytes(j.data)], { type: j.mime });
+        }
+        async function proxyFile(id, onProgress) {
+          // PDFs arrive in 3 MB parts, 3 at a time
+          const first = await proxyJSON(id, "file", 0),
+            n = first.parts,
+            out = new Array(n);
+          out[0] = b64ToBytes(first.data);
+          let done = 1,
+            next = 1;
+          onProgress && onProgress(done / n);
+          await Promise.all(
+            Array.from({ length: Math.min(3, n - 1) }, async () => {
+              while (next < n) {
+                const i = next++,
+                  j = await proxyJSON(id, "file", i);
+                out[i] = b64ToBytes(j.data);
+                done++;
+                onProgress && onProgress(done / n);
+              }
             }),
           );
-        } catch (e) {}
-      }
-      const metaKey = (id, w) => `mag:${id}:${w}`;
-      function readMeta(k) {
-        try {
-          const m = JSON.parse(localStorage.getItem(k));
-          return m && Date.now() - m.t < TTL ? m : null;
-        } catch (e) {
-          return null;
-        }
-      }
-      function writeMeta(k, m) {
-        try {
-          localStorage.setItem(k, JSON.stringify({ ...m, t: Date.now() }));
-        } catch (e) {}
-      }
-      const pageKey = (id, w, i) =>
-        `https://cache.local/p/${encodeURIComponent(id)}/${w}/${i}`;
-
-      /* ---------- Drive access: API key (public files) or Apps Script proxy (private files) ---------- */
-      const KEYS = DRIVE_API_KEYS.filter((k) => k && !/^(PASTE|YOUR)/i.test(k));
-      let keyIdx = Math.floor(Math.random() * Math.max(1, KEYS.length)); // spread visitors over the keys
-      const driveApiUrl = (id, k) =>
-        `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${k || ""}`;
-      const statusOf = (e) =>
-        e &&
-        (e.name === "MissingPDFException"
-          ? 404
-          : e.status || (String(e.message).match(/\((\d{3})\)/) || [])[1]);
-      async function withKey(fn) {
-        // run fn(key); on quota/key errors (400/401/403/429) try the next key
-        const n = Math.max(1, KEYS.length);
-        let last;
-        for (let i = 0; i < n; i++) {
-          const at = (keyIdx + i) % n;
-          try {
-            const r = await fn(KEYS[at]);
-            keyIdx = at;
-            return r;
-          } catch (e) {
-            last = e;
-            if (![400, 401, 403, 429].includes(+statusOf(e))) throw e;
-          }
-        }
-        throw last;
-      }
-      const driveThumb = (id, w = 500) =>
-        `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`;
-      const imgSrc = (id, w) => (PROXY_URL ? `proxy:${id}` : driveThumb(id, w));
-      const b64ToBytes = (s) => {
-        const bin = atob(s),
-          u8 = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-        return u8;
-      };
-      async function proxyJSON(id, kind, i = 0) {
-        let r, txt;
-        try {
-          r = await fetch(
-            `${PROXY_URL}?id=${encodeURIComponent(id)}&kind=${kind}&i=${i}`,
-          );
-          txt = await r.text();
-        } catch (e) {
-          throw new Error(
-            "Can't reach the proxy. Check PROXY_URL and that it is deployed as a web app.",
-          );
-        }
-        let j;
-        try {
-          j = JSON.parse(txt);
-        } catch (e) {
-          throw new Error(
-            "The proxy sent a web page instead of data. Deploy it with “Execute as: Me” and “Who has access: Anyone”.",
-          );
-        }
-        if (j.error) throw new Error("Proxy: " + j.error);
-        return j;
-      }
-      async function proxyBlob(id, kind) {
-        // small files: covers, icons
-        const j = await proxyJSON(id, kind);
-        return new Blob([b64ToBytes(j.data)], { type: j.mime });
-      }
-      async function proxyFile(id, onProgress) {
-        // PDFs arrive in 3 MB parts, 3 at a time
-        const first = await proxyJSON(id, "file", 0),
-          n = first.parts,
-          out = new Array(n);
-        out[0] = b64ToBytes(first.data);
-        let done = 1,
-          next = 1;
-        onProgress && onProgress(done / n);
-        await Promise.all(
-          Array.from({ length: Math.min(3, n - 1) }, async () => {
-            while (next < n) {
-              const i = next++,
-                j = await proxyJSON(id, "file", i);
-              out[i] = b64ToBytes(j.data);
-              done++;
-              onProgress && onProgress(done / n);
-            }
-          }),
-        );
-        const bytes = new Uint8Array(out.reduce((s, x) => s + x.length, 0));
-        let at = 0;
-        out.forEach((x) => {
-          bytes.set(x, at);
-          at += x.length;
-        });
-        return bytes;
-      }
-      function driveImg(v, w) {
-        // Drive link / file ID / image URL -> loadable source
-        if (!v) return "";
-        const m = v.match(/[-\w]{25,}/);
-        if (m && (/drive\.google\.com/.test(v) || /^[-\w]{25,}$/.test(v)))
-          return imgSrc(m[0], w);
-        return /^https?:|^[\w./-]+\.(png|jpe?g|webp|svg|gif)$/i.test(v)
-          ? v
-          : ""; // web URL or a file kept in the repo (e.g. icons/quill.png)
-      }
-      function iconSrc(v) {
-        if (!v) return "";
-        const m = v.match(/[-\w]{25,}/);
-        if (m && (/drive\.google\.com/.test(v) || /^[-\w]{25,}$/.test(v)))
-          return `icon:${m[0]}`; // private icons go through the proxy, public ones through the API keys
-        return driveImg(v, 160);
-      }
-      function coverUrl(o) {
-        if (o.cover) return driveImg(o.cover, 500) || o.cover;
-        return o.driveid ? imgSrc(o.driveid, 500) : "";
-      }
-      const objURLs = new Map(); // source -> object url (reused across re-renders)
-      async function apiBlob(id) {
-        // public Drive file through the API keys (CORS-friendly)
-        const blob = await withKey(async (k) => {
-          const r = await fetch(driveApiUrl(id, k), { mode: "cors" });
-          if (!r.ok) {
-            const e = new Error("HTTP " + r.status);
-            e.status = r.status;
-            throw e;
-          }
-          return r.blob();
-        });
-        if (!blob.type.startsWith("image/")) throw new Error("not an image");
-        return blob;
-      }
-      async function imageSrc(url) {
-        // cached object URL, or a raw URL if it can't be fetched
-        if (objURLs.has(url)) return objURLs.get(url);
-        const kind = url.startsWith("proxy:")
-          ? "proxy"
-          : url.startsWith("driveapi:")
-            ? "api"
-            : url.startsWith("icon:")
-              ? "icon"
-              : "url";
-        const id = kind === "url" ? "" : url.slice(url.indexOf(":") + 1);
-        const key =
-          kind === "url"
-            ? url
-            : `https://cache.local/${kind === "proxy" ? "c" : "i"}/${id}`;
-        let blob = await cacheGet(key);
-        if (!blob) {
-          try {
-            if (kind === "proxy") blob = await proxyBlob(id, "thumb");
-            else if (kind === "api") blob = await apiBlob(id);
-            else if (kind === "icon")
-              blob = PROXY_URL
-                ? await proxyBlob(id, "thumb").catch(() => apiBlob(id))
-                : await apiBlob(id);
-            else {
-              const res = await fetch(url, { mode: "cors" });
-              if (!res.ok) throw new Error(res.status);
-              blob = await res.blob();
-              if (!blob.type.startsWith("image/"))
-                throw new Error("not an image");
-            }
-            cachePut(key, blob);
-          } catch (e) {
-            if (kind === "proxy") throw e;
-            return kind === "url" ? url : driveApiUrl(id, KEYS[keyIdx]); // plain <img>; browser cache applies
-          }
-        }
-        const u = URL.createObjectURL(blob);
-        objURLs.set(url, u);
-        return u;
-      }
-      async function loadCover(im, url) {
-        try {
-          im.src = await imageSrc(url);
-        } catch (e) {
-          im.remove();
-        }
-      }
-      const io = new IntersectionObserver(
-        (es) =>
-          es.forEach((e) => {
-            if (e.isIntersecting) {
-              io.unobserve(e.target);
-              e.target._load();
-            }
-          }),
-        { rootMargin: "300px" },
-      );
-
-      /* ---------- category icons: Font Awesome first, uploaded image second ---------- */
-      const CAT_ICON = {};
-      function faClass(v) {
-        // "book", "fa-book", "fa-regular fa-star" ...
-        const tk = (v || "")
-          .toLowerCase()
-          .replace(/[^a-z0-9 -]/g, "")
-          .split(/\s+/)
-          .filter(Boolean);
-        if (!tk.length) return "";
-        const out = tk.map((x) =>
-          /^(fa|fas|far|fab|fal|fat)$/.test(x) || x.startsWith("fa-")
-            ? x
-            : "fa-" + x,
-        );
-        if (
-          !out.some((x) =>
-            /^fa-(solid|regular|brands)$|^(fas|far|fab)$/.test(x),
-          )
-        )
-          out.unshift("fa-solid");
-        return out.join(" ");
-      }
-      function iconFields(o) {
-        const iv = o.icon || "",
-          isImg =
-            /^https?:|drive\.google\.com|\.(png|jpe?g|webp|svg|gif)$/i.test(iv);
-        return {
-          icon: isImg ? "" : faClass(iv),
-          iconImg: iconSrc(o.iconimg || (isImg ? iv : "")),
-        };
-      }
-      // Uploaded icons are turned into a one-colour glyph so they look like the Font Awesome ones
-      const glyphs = new Map();
-      async function glyph(url) {
-        if (glyphs.has(url)) return glyphs.get(url);
-        const im = new Image();
-        im.src = await imageSrc(url);
-        await im.decode();
-        const k = Math.min(
-          1,
-          256 / Math.max(im.naturalWidth, im.naturalHeight),
-        );
-        const c = document.createElement("canvas");
-        c.width = Math.max(1, Math.round(im.naturalWidth * k));
-        c.height = Math.max(1, Math.round(im.naturalHeight * k));
-        const x = c.getContext("2d");
-        x.drawImage(im, 0, 0, c.width, c.height);
-        const d = x.getImageData(0, 0, c.width, c.height),
-          p = d.data;
-        let tr = 0;
-        for (let i = 3; i < p.length; i += 4) if (p[i] < 250) tr++;
-        const byAlpha = tr > (p.length / 4) * 0.03; // transparent PNG: use its shape; opaque image: use its dark strokes
-        for (let i = 0; i < p.length; i += 4) {
-          const lum =
-              (0.2126 * p[i] + 0.7152 * p[i + 1] + 0.0722 * p[i + 2]) / 255,
-            a = p[i + 3];
-          p[i] = p[i + 1] = p[i + 2] = 255;
-          p[i + 3] = Math.round(byAlpha ? a : Math.min(1, (1 - lum) * 1.5) * a);
-        }
-        x.putImageData(d, 0, 0);
-        const out = c.toDataURL("image/png");
-        glyphs.set(url, out);
-        return out;
-      }
-      function makeIcon(spec, onfail) {
-        if (spec.fa) {
-          const i = document.createElement("i");
-          i.className = spec.fa;
-          return i;
-        }
-        const s = document.createElement("span");
-        s.className = "glyph";
-        glyph(spec.img)
-          .then((g) => s.style.setProperty("--g", `url(${g})`))
-          .catch(async () => {
-            try {
-              // pixels not readable (cross-origin): show the image itself, blended to look white
-              const im = new Image();
-              im.className = "iglyph";
-              im.alt = "";
-              im.onerror = () => {
-                im.remove();
-                onfail && onfail();
-              };
-              im.src = await imageSrc(spec.img);
-              s.replaceWith(im);
-            } catch (e) {
-              s.remove();
-              onfail && onfail();
-            }
+          const bytes = new Uint8Array(out.reduce((s, x) => s + x.length, 0));
+          let at = 0;
+          out.forEach((x) => {
+            bytes.set(x, at);
+            at += x.length;
           });
-        return s;
-      }
-      function headIcon(spec) {
-        // category heading: small coloured tile, same look as the genre tiles
-        if (spec.fa) return makeIcon(spec);
-        const t = document.createElement("span");
-        t.className = "ti sm";
-        t.appendChild(makeIcon(spec, () => t.remove()));
-        return t;
-      }
+          return bytes;
+        }
+        function driveImg(v, w) {
+          // Drive link / file ID / image URL -> loadable source
+          if (!v) return "";
+          const m = v.match(/[-\w]{25,}/);
+          if (m && (/drive\.google\.com/.test(v) || /^[-\w]{25,}$/.test(v)))
+            return imgSrc(m[0], w);
+          return /^https?:|^[\w./-]+\.(png|jpe?g|webp|svg|gif)$/i.test(v)
+            ? v
+            : ""; // web URL or a file kept in the repo (e.g. icons/quill.png)
+        }
+        function iconSrc(v) {
+          if (!v) return "";
+          const m = v.match(/[-\w]{25,}/);
+          if (m && (/drive\.google\.com/.test(v) || /^[-\w]{25,}$/.test(v)))
+            return `icon:${m[0]}`; // private icons go through the proxy, public ones through the API keys
+          return driveImg(v, 160);
+        }
+        function coverUrl(o) {
+          if (o.cover) return driveImg(o.cover, 500) || o.cover;
+          return o.driveid ? imgSrc(o.driveid, 500) : "";
+        }
+        const objURLs = new Map(); // source -> object url (reused across re-renders)
+        async function apiBlob(id) {
+          // public Drive file through the API keys (CORS-friendly)
+          const blob = await withKey(async (k) => {
+            const r = await fetch(driveApiUrl(id, k), { mode: "cors" });
+            if (!r.ok) {
+              const e = new Error("HTTP " + r.status);
+              e.status = r.status;
+              throw e;
+            }
+            return r.blob();
+          });
+          if (!blob.type.startsWith("image/")) throw new Error("not an image");
+          return blob;
+        }
+        async function imageSrc(url) {
+          // cached object URL, or a raw URL if it can't be fetched
+          if (objURLs.has(url)) return objURLs.get(url);
+          const kind = url.startsWith("proxy:")
+            ? "proxy"
+            : url.startsWith("driveapi:")
+              ? "api"
+              : url.startsWith("icon:")
+                ? "icon"
+                : "url";
+          const id = kind === "url" ? "" : url.slice(url.indexOf(":") + 1);
+          const key =
+            kind === "url"
+              ? url
+              : `https://cache.local/${kind === "proxy" ? "c" : "i"}/${id}`;
+          let blob = await cacheGet(key);
+          if (!blob) {
+            try {
+              if (kind === "proxy") blob = await proxyBlob(id, "thumb");
+              else if (kind === "api") blob = await apiBlob(id);
+              else if (kind === "icon")
+                blob = PROXIES.length
+                  ? await proxyBlob(id, "thumb").catch(() => apiBlob(id))
+                  : await apiBlob(id);
+              else {
+                const res = await fetch(url, { mode: "cors" });
+                if (!res.ok) throw new Error(res.status);
+                blob = await res.blob();
+                if (!blob.type.startsWith("image/"))
+                  throw new Error("not an image");
+              }
+              cachePut(key, blob);
+            } catch (e) {
+              if (kind === "proxy") throw e;
+              return kind === "url" ? url : driveApiUrl(id, KEYS[keyIdx]); // plain <img>; browser cache applies
+            }
+          }
+          const u = URL.createObjectURL(blob);
+          objURLs.set(url, u);
+          return u;
+        }
+        async function loadCover(im, url) {
+          try {
+            im.src = await imageSrc(url);
+          } catch (e) {
+            im.remove();
+          }
+        }
+        const io = new IntersectionObserver(
+          (es) =>
+            es.forEach((e) => {
+              if (e.isIntersecting) {
+                io.unobserve(e.target);
+                e.target._load();
+              }
+            }),
+          { rootMargin: "300px" },
+        );
 
-      /* ---------- library ---------- */
-      function parseCSV(text) {
-        const rows = [];
-        let row = [],
-          cell = "",
-          q = false;
-        for (let i = 0; i < text.length; i++) {
-          const c = text[i];
-          if (q) {
-            if (c === '"') {
-              if (text[i + 1] === '"') {
-                cell += '"';
-                i++;
-              } else q = false;
+        /* ---------- category icons: Font Awesome first, uploaded image second ---------- */
+        const CAT_ICON = {};
+        function faClass(v) {
+          // "book", "fa-book", "fa-regular fa-star" ...
+          const tk = (v || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9 -]/g, "")
+            .split(/\s+/)
+            .filter(Boolean);
+          if (!tk.length) return "";
+          const out = tk.map((x) =>
+            /^(fa|fas|far|fab|fal|fat)$/.test(x) || x.startsWith("fa-")
+              ? x
+              : "fa-" + x,
+          );
+          if (
+            !out.some((x) =>
+              /^fa-(solid|regular|brands)$|^(fas|far|fab)$/.test(x),
+            )
+          )
+            out.unshift("fa-solid");
+          return out.join(" ");
+        }
+        function iconFields(o) {
+          const iv = o.icon || "",
+            isImg =
+              /^https?:|drive\.google\.com|\.(png|jpe?g|webp|svg|gif)$/i.test(iv);
+          return {
+            icon: isImg ? "" : faClass(iv),
+            iconImg: iconSrc(o.iconimg || (isImg ? iv : "")),
+          };
+        }
+        // Uploaded icons are turned into a one-colour glyph so they look like the Font Awesome ones
+        const glyphs = new Map();
+        async function glyph(url) {
+          if (glyphs.has(url)) return glyphs.get(url);
+          const im = new Image();
+          im.src = await imageSrc(url);
+          await im.decode();
+          const k = Math.min(
+            1,
+            256 / Math.max(im.naturalWidth, im.naturalHeight),
+          );
+          const c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(im.naturalWidth * k));
+          c.height = Math.max(1, Math.round(im.naturalHeight * k));
+          const x = c.getContext("2d");
+          x.drawImage(im, 0, 0, c.width, c.height);
+          const d = x.getImageData(0, 0, c.width, c.height),
+            p = d.data;
+          let tr = 0;
+          for (let i = 3; i < p.length; i += 4) if (p[i] < 250) tr++;
+          const byAlpha = tr > (p.length / 4) * 0.03; // transparent PNG: use its shape; opaque image: use its dark strokes
+          for (let i = 0; i < p.length; i += 4) {
+            const lum =
+                (0.2126 * p[i] + 0.7152 * p[i + 1] + 0.0722 * p[i + 2]) / 255,
+              a = p[i + 3];
+            p[i] = p[i + 1] = p[i + 2] = 255;
+            p[i + 3] = Math.round(byAlpha ? a : Math.min(1, (1 - lum) * 1.5) * a);
+          }
+          x.putImageData(d, 0, 0);
+          const out = c.toDataURL("image/png");
+          glyphs.set(url, out);
+          return out;
+        }
+        function makeIcon(spec, onfail) {
+          if (spec.fa) {
+            const i = document.createElement("i");
+            i.className = spec.fa;
+            return i;
+          }
+          const s = document.createElement("span");
+          s.className = "glyph";
+          glyph(spec.img)
+            .then((g) => s.style.setProperty("--g", `url(${g})`))
+            .catch(async () => {
+              try {
+                // pixels not readable (cross-origin): show the image itself, blended to look white
+                const im = new Image();
+                im.className = "iglyph";
+                im.alt = "";
+                im.onerror = () => {
+                  im.remove();
+                  onfail && onfail();
+                };
+                im.src = await imageSrc(spec.img);
+                s.replaceWith(im);
+              } catch (e) {
+                s.remove();
+                onfail && onfail();
+              }
+            });
+          return s;
+        }
+        function headIcon(spec) {
+          // category heading: small coloured tile, same look as the genre tiles
+          if (spec.fa) return makeIcon(spec);
+          const t = document.createElement("span");
+          t.className = "ti sm";
+          t.appendChild(makeIcon(spec, () => t.remove()));
+          return t;
+        }
+
+        /* ---------- library ---------- */
+        function parseCSV(text) {
+          const rows = [];
+          let row = [],
+            cell = "",
+            q = false;
+          for (let i = 0; i < text.length; i++) {
+            const c = text[i];
+            if (q) {
+              if (c === '"') {
+                if (text[i + 1] === '"') {
+                  cell += '"';
+                  i++;
+                } else q = false;
+              } else cell += c;
+            } else if (c === '"') q = true;
+            else if (c === ",") {
+              row.push(cell);
+              cell = "";
+            } else if (c === "\n" || c === "\r") {
+              if (c === "\r" && text[i + 1] === "\n") i++;
+              row.push(cell);
+              rows.push(row);
+              row = [];
+              cell = "";
             } else cell += c;
-          } else if (c === '"') q = true;
-          else if (c === ",") {
-            row.push(cell);
-            cell = "";
-          } else if (c === "\n" || c === "\r") {
-            if (c === "\r" && text[i + 1] === "\n") i++;
+          }
+          if (cell || row.length) {
             row.push(cell);
             rows.push(row);
-            row = [];
-            cell = "";
-          } else cell += c;
+          }
+          return rows;
         }
-        if (cell || row.length) {
-          row.push(cell);
-          rows.push(row);
-        }
-        return rows;
-      }
-      async function loadBooks() {
-        $("libprog").hidden = false;
-        try {
-          const res = await fetch(SHEET_CSV_URL);
-          if (!res.ok) throw new Error(res.status);
-          const [head, ...rows] = parseCSV(await res.text());
-          const keys = head.map((h) => h.trim().toLowerCase());
-          BOOKS = rows
-            .filter((r) => r.some((c) => c.trim()))
-            .map((r) => {
-              const o = {};
-              keys.forEach((k, i) => (o[k] = (r[i] || "").trim()));
-              return {
-                category: o.category || "Library",
-                title: o.title || "Magazine",
-                sub: o.sub || "",
-                author: o.author || "",
-                color: o.color || "#a23b4a",
-                driveId: o.driveid,
-                pdf: o.pdf,
-                cover: coverUrl(o),
-                ...iconFields(o),
-                uid: o.id || o.uniqueid || o.uid || o.driveid || o.pdf,
-                publisher: o.publisher || "",
-                language: o.language || "",
-                year: o.year || "",
-                pagesN: o.pages || "",
-                summary: o.summary || o.description || "",
-              };
+        async function loadBooks() {
+          $("libprog").hidden = false;
+          try {
+            const res = await fetch(SHEET_CSV_URL);
+            if (!res.ok) throw new Error(res.status);
+            const [head, ...rows] = parseCSV(await res.text());
+            const keys = head.map((h) => h.trim().toLowerCase());
+            BOOKS = rows
+              .filter((r) => r.some((c) => c.trim()))
+              .map((r) => {
+                const o = {};
+                keys.forEach((k, i) => (o[k] = (r[i] || "").trim()));
+                const px = (+o.proxy || 0) - 1; // optional "proxy" column: 1 = first proxy, 2 = second ...
+                if (px >= 0 && px < PROXIES.length)
+                  [o.driveid, o.cover, o.icon, o.iconimg].forEach((v) => {
+                    const m = String(v || "").match(/[-\w]{25,}/);
+                    if (m) fileProxy.set(m[0], px);
+                  });
+                return {
+                  category: o.category || "Library",
+                  title: o.title || "Magazine",
+                  sub: o.sub || "",
+                  author: o.author || "",
+                  color: o.color || "#a23b4a",
+                  driveId: o.driveid,
+                  pdf: o.pdf,
+                  cover: coverUrl(o),
+                  ...iconFields(o),
+                  uid: o.id || o.uniqueid || o.uid || o.driveid || o.pdf,
+                  publisher: o.publisher || "",
+                  language: o.language || "",
+                  year: o.year || "",
+                  pagesN: o.pages || "",
+                  summary: o.summary || o.description || "",
+                };
+              });
+            const fa = {},
+              im = {}; // Font Awesome first, uploaded image as the fallback
+            BOOKS.forEach((b) => {
+              if (b.icon && !fa[b.category]) fa[b.category] = b.icon;
+              if (b.iconImg && !im[b.category]) im[b.category] = b.iconImg;
             });
-          const fa = {},
-            im = {}; // Font Awesome first, uploaded image as the fallback
-          BOOKS.forEach((b) => {
-            if (b.icon && !fa[b.category]) fa[b.category] = b.icon;
-            if (b.iconImg && !im[b.category]) im[b.category] = b.iconImg;
-          });
-          BOOKS.forEach((b) => {
-            CAT_ICON[b.category] = fa[b.category]
-              ? { fa: fa[b.category] }
-              : im[b.category]
-                ? { img: im[b.category] }
-                : null;
-          });
-          renderShelves();
-          route();
-        } catch (err) {
-          console.error(err);
-          $("shelves").innerHTML =
-            `<p class="empty">Couldn't load the library. Please try again later.</p>`;
-        } finally {
-          $("libprog").hidden = true;
-        }
-      }
-      function coverEl(b) {
-        const wrap = document.createElement("span");
-        wrap.className = "b3d";
-        wrap.innerHTML = `<span class="pages"></span><span class="cover"><span class="ph"><b></b><span></span></span></span>`;
-        const cv = wrap.querySelector(".cover");
-        cv.style.setProperty("--c", b.color);
-        wrap.querySelector(".ph b").textContent = b.title;
-        wrap.querySelector(".ph span").textContent = b.sub;
-        if (b.cover) {
-          cv._load = () => {
-            const im = new Image();
-            im.alt = "";
-            im.onerror = () => im.remove();
-            cv.appendChild(im);
-            loadCover(im, b.cover);
-          };
-          io.observe(cv); // fetch the cover only when it is near the screen
-        }
-        return wrap;
-      }
-      function makeCard(b) {
-        const el = document.createElement("button");
-        el.className = "card";
-        el.setAttribute("aria-label", `${b.title}, ${b.sub}`);
-        const ct = document.createElement("span"),
-          cs = document.createElement("span");
-        ct.className = "ct";
-        ct.textContent = b.title;
-        cs.className = "cs";
-        cs.textContent = [b.sub, b.author].filter(Boolean).join(" · ");
-        el.append(coverEl(b), ct, cs);
-        el.onclick = () => go(`#read=${encodeURIComponent(b.uid)}`);
-        return el;
-      }
-      function makeCarousel(nodes) {
-        const car = document.createElement("div");
-        car.className = "car";
-        car.innerHTML = `<div class="track"></div>
-    <button class="ibtn nav prev" aria-label="Previous"><svg class="i"><use href="#i-left"/></svg></button>
-    <button class="ibtn nav next" aria-label="Next"><svg class="i"><use href="#i-right"/></svg></button>`;
-        const track = car.querySelector(".track"),
-          prev = car.querySelector(".prev"),
-          next = car.querySelector(".next");
-        nodes.forEach((n) => track.appendChild(n));
-        car._upd = () => {
-          prev.hidden = track.scrollLeft <= 2;
-          next.hidden =
-            track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
-        };
-        prev.onclick = () =>
-          track.scrollBy({
-            left: -track.clientWidth * 0.9,
-            behavior: "smooth",
-          });
-        next.onclick = () =>
-          track.scrollBy({ left: track.clientWidth * 0.9, behavior: "smooth" });
-        track.addEventListener("scroll", car._upd, { passive: true });
-        return car;
-      }
-      function renderShelves() {
-        const s = $("q").value.trim().toLowerCase();
-        const list = BOOKS.filter((b) =>
-          `${b.title} ${b.sub} ${b.author} ${b.category}`
-            .toLowerCase()
-            .includes(s),
-        );
-        const all = [...new Set(BOOKS.map((b) => b.category))];
-        const groups = new Map();
-        list.forEach((b) => {
-          if (!groups.has(b.category)) groups.set(b.category, []);
-          groups.get(b.category).push(b);
-        });
-        const root = $("shelves");
-        root.innerHTML = "";
-        if (!groups.size) {
-          root.innerHTML = `<p class="empty">No books found.</p>`;
-          return;
-        }
-        if (!s && all.length > 1) {
-          const g = document.createElement("section");
-          g.className = "genres";
-          g.innerHTML = `<div class="cat-h"><h2>Books by Genre</h2></div>`;
-          const tiles = all.map((name, i) => {
-            const t = document.createElement("button");
-            t.className = "tile";
-            t.innerHTML = `<span class="ti"></span><span class="tn"></span><span class="tc">Books: <b></b></span>`;
-            const ti = t.querySelector(".ti"),
-              letter = [...name][0].toUpperCase(),
-              spec = CAT_ICON[name];
-            ti.style.background = PALETTE[i % PALETTE.length];
-            if (spec)
-              ti.appendChild(
-                makeIcon(spec, () => {
-                  ti.textContent = letter;
-                }),
-              );
-            else ti.textContent = letter;
-            t.querySelector(".tn").textContent = name;
-            t.querySelector("b").textContent = BOOKS.filter(
-              (b) => b.category === name,
-            ).length;
-            t.onclick = () =>
-              document
-                .getElementById("cat-" + i)
-                .scrollIntoView({ behavior: "smooth", block: "start" });
-            return t;
-          });
-          g.appendChild(makeCarousel(tiles));
-          root.appendChild(g);
-        }
-        groups.forEach((books, name) => {
-          const sec = document.createElement("section");
-          sec.className = "cat";
-          sec.id = "cat-" + all.indexOf(name);
-          if (s) sec.dataset.open = "1"; // while searching, show every match
-          sec.innerHTML = `<div class="cat-h"><h2></h2><button class="btn tonal va">View All</button></div>`;
-          const h2 = sec.querySelector("h2");
-          if (CAT_ICON[name]) h2.append(headIcon(CAT_ICON[name]), " " + name);
-          else h2.textContent = name;
-          sec.appendChild(makeCarousel(books.map(makeCard)));
-          sec.querySelector(".va").onclick = () => {
-            sec.dataset.open = sec.dataset.open === "1" ? "" : "1";
-            updateCarousels();
-          };
-          root.appendChild(sec);
-        });
-        updateCarousels();
-      }
-      function updateCarousels() {
-        // "View All" only appears when a row overflows
-        const searching = !!$("q").value.trim();
-        document.querySelectorAll(".cat").forEach((sec) => {
-          const track = sec.querySelector(".track"),
-            btn = sec.querySelector(".va"),
-            open = sec.dataset.open === "1";
-          btn.textContent = open ? "Show less" : "View All";
-          btn.hidden =
-            searching || (!open && track.scrollWidth <= track.clientWidth + 2);
-        });
-        document.querySelectorAll(".car").forEach((c) => c._upd());
-      }
-      $("q").oninput = renderShelves;
-
-      /* ---------- navigation: #read=<id> = details, #read=<id>&page=<n> = reader ---------- */
-      const syncLock = () =>
-        document.documentElement.classList.toggle(
-          "lock",
-          detailOpen || readerOn,
-        );
-      const linkFor = (uid, page) =>
-        `${location.origin}${location.pathname}#read=${encodeURIComponent(uid)}${page ? `&page=${page}` : ""}`;
-      function parseHash() {
-        const m = location.hash.match(/^#read=([^&]+)(?:&page=(\d+))?/);
-        return m
-          ? { id: decodeURIComponent(m[1]), page: m[2] ? +m[2] : null }
-          : null;
-      }
-      function go(h) {
-        history.pushState({ app: 1 }, "", h);
-        route();
-      }
-      function route() {
-        const h = parseHash(),
-          b = h && BOOKS.find((x) => x.uid === h.id);
-        if (!b) {
-          hideDetail();
-          if (readerOn) teardown();
-          return;
-        }
-        if (h.page != null) {
-          hideDetail();
-          if (!readerOn || curId !== b.uid) openBook(b, h.page - 1);
-        } else {
-          if (readerOn) teardown();
-          showDetail(b);
-        }
-      }
-      const fromHome = () => {
-        history.replaceState(null, "", location.pathname + location.search);
-        route();
-      };
-      function closeDetail() {
-        if (history.state && history.state.app) history.back();
-        else fromHome();
-      }
-      function closeReader() {
-        if (history.state && history.state.app) history.back();
-        else if (curId) {
-          history.replaceState(null, "", `#read=${encodeURIComponent(curId)}`);
-          route();
-        } else fromHome();
-      }
-      addEventListener("popstate", route);
-
-      async function share(title, subtitle, url) {
-        const text = `${title}${subtitle ? " · " + subtitle : ""} | ${SITE_NAME}`;
-        try {
-          if (navigator.share) {
-            await navigator.share({
-              title: `${title} — ${SITE_NAME}`,
-              text,
-              url,
+            BOOKS.forEach((b) => {
+              CAT_ICON[b.category] = fa[b.category]
+                ? { fa: fa[b.category] }
+                : im[b.category]
+                  ? { img: im[b.category] }
+                  : null;
             });
+            renderShelves();
+            route();
+          } catch (err) {
+            console.error(err);
+            $("shelves").innerHTML =
+              `<p class="empty">Couldn't load the library. Please try again later.</p>`;
+          } finally {
+            $("libprog").hidden = true;
+          }
+        }
+        function coverEl(b) {
+          const wrap = document.createElement("span");
+          wrap.className = "b3d";
+          wrap.innerHTML = `<span class="pages"></span><span class="cover"><span class="ph"><b></b><span></span></span></span>`;
+          const cv = wrap.querySelector(".cover");
+          cv.style.setProperty("--c", b.color);
+          wrap.querySelector(".ph b").textContent = b.title;
+          wrap.querySelector(".ph span").textContent = b.sub;
+          if (b.cover) {
+            cv._load = () => {
+              const im = new Image();
+              im.alt = "";
+              im.onerror = () => im.remove();
+              cv.appendChild(im);
+              loadCover(im, b.cover);
+            };
+            io.observe(cv); // fetch the cover only when it is near the screen
+          }
+          return wrap;
+        }
+        function makeCard(b) {
+          const el = document.createElement("button");
+          el.className = "card";
+          el.setAttribute("aria-label", `${b.title}, ${b.sub}`);
+          const ct = document.createElement("span"),
+            cs = document.createElement("span");
+          ct.className = "ct";
+          ct.textContent = b.title;
+          cs.className = "cs";
+          cs.textContent = [b.sub, b.author].filter(Boolean).join(" · ");
+          el.append(coverEl(b), ct, cs);
+          el.onclick = () => go(`#read=${encodeURIComponent(b.uid)}`);
+          return el;
+        }
+        function makeCarousel(nodes) {
+          const car = document.createElement("div");
+          car.className = "car";
+          car.innerHTML = `<div class="track"></div>
+      <button class="ibtn nav prev" aria-label="Previous"><svg class="i"><use href="#i-left"/></svg></button>
+      <button class="ibtn nav next" aria-label="Next"><svg class="i"><use href="#i-right"/></svg></button>`;
+          const track = car.querySelector(".track"),
+            prev = car.querySelector(".prev"),
+            next = car.querySelector(".next");
+          nodes.forEach((n) => track.appendChild(n));
+          car._upd = () => {
+            prev.hidden = track.scrollLeft <= 2;
+            next.hidden =
+              track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+          };
+          prev.onclick = () =>
+            track.scrollBy({
+              left: -track.clientWidth * 0.9,
+              behavior: "smooth",
+            });
+          next.onclick = () =>
+            track.scrollBy({ left: track.clientWidth * 0.9, behavior: "smooth" });
+          track.addEventListener("scroll", car._upd, { passive: true });
+          return car;
+        }
+        function renderShelves() {
+          const s = $("q").value.trim().toLowerCase();
+          const list = BOOKS.filter((b) =>
+            `${b.title} ${b.sub} ${b.author} ${b.category}`
+              .toLowerCase()
+              .includes(s),
+          );
+          const all = [...new Set(BOOKS.map((b) => b.category))];
+          const groups = new Map();
+          list.forEach((b) => {
+            if (!groups.has(b.category)) groups.set(b.category, []);
+            groups.get(b.category).push(b);
+          });
+          const root = $("shelves");
+          root.innerHTML = "";
+          if (!groups.size) {
+            root.innerHTML = `<p class="empty">No books found.</p>`;
             return;
           }
-        } catch (e) {
-          if (e.name === "AbortError") return;
-        }
-        const full = `${text}\n${url}`; // fallback: copy "title · subtitle | site" + link
-        try {
-          await navigator.clipboard.writeText(full);
-          snack("Link copied");
-        } catch (e) {
-          prompt("Copy this link", full);
-        }
-      }
-      function snack(msg) {
-        const s = $("snack");
-        s.textContent = msg;
-        s.classList.add("on");
-        clearTimeout(s._t);
-        s._t = setTimeout(() => s.classList.remove("on"), 2400);
-      }
-
-      /* ---------- book details dialog ---------- */
-      const FIELDS = [
-        ["author", "Authors", "fa-user-pen"],
-        ["publisher", "Publisher", "fa-building-columns"],
-        ["category", "Genre", "fa-tags"],
-        ["language", "Language", "fa-language"],
-        ["sub", "Issue", "fa-bookmark"],
-        ["year", "Year", "fa-calendar-days"],
-        ["pagesN", "Pages", "fa-file-lines"],
-      ];
-      function showDetail(b) {
-        $("dtitle").textContent = b.title;
-        const rows = $("drows");
-        rows.innerHTML = "";
-        FIELDS.forEach(([k, label, ic]) => {
-          if (!b[k]) return;
-          const r = document.createElement("div");
-          r.className = "d-row";
-          r.innerHTML = `<i class="fa-solid ${ic}"></i><span class="dl"></span><b class="dv"></b>`;
-          r.querySelector(".dl").textContent = label;
-          r.querySelector(".dv").textContent = b[k];
-          rows.appendChild(r);
-        });
-        $("dcover").innerHTML = "";
-        $("dcover").appendChild(coverEl(b));
-        $("dsumwrap").hidden = !b.summary;
-        $("dsum").textContent = b.summary;
-        $("dread").onclick = () =>
-          go(`#read=${encodeURIComponent(b.uid)}&page=1`);
-        $("dshare").onclick = () => share(b.title, b.sub, linkFor(b.uid));
-        $("detail").hidden = false;
-        detailOpen = true;
-        syncLock();
-        $("dread").focus();
-      }
-      function hideDetail() {
-        if (!detailOpen) return;
-        $("detail").hidden = true;
-        detailOpen = false;
-        syncLock();
-      }
-      $("dclose").onclick = closeDetail;
-      $("detail").addEventListener("click", (e) => {
-        if (e.target === $("detail")) closeDetail();
-      });
-
-      /* ---------- reader ---------- */
-      function showMsg(text, pct, err) {
-        $("msg").classList.remove("hide");
-        $("mtxt").textContent = text;
-        $("mspin").hidden = $("prog").hidden = !!err;
-        $("prog").className = "linear" + (pct == null ? " ind" : "");
-        if (pct != null) $("prog").firstElementChild.style.width = pct + "%";
-      }
-      function destroyFlip() {
-        if (flip) {
-          try {
-            flip.destroy();
-          } catch (e) {}
-          flip = null;
-        }
-        $("stage").innerHTML = "";
-      }
-      function freePages() {
-        pages.forEach((u) => u && URL.revokeObjectURL(u));
-        pages = [];
-        pageEls = [];
-      }
-      function fitWidth() {
-        // page width at which the whole book fits the stage (no scrollbars)
-        const st = $("stage"),
-          W = st.clientWidth - PAD,
-          H = st.clientHeight - PAD;
-        return Math.min(W < 720 ? W : W / 2, H * ratio);
-      }
-      function fill(d, i) {
-        // image, spinner (still rendering) or error + retry
-        d.innerHTML = "";
-        if (pages[i]) {
-          const im = new Image();
-          im.src = pages[i];
-          im.alt = `Page ${i + 1}`;
-          im.draggable = false;
-          d.appendChild(im);
-          return;
-        }
-        const s = document.createElement("span");
-        if (pages[i] === null) {
-          s.className = "spin";
-          s.innerHTML = SPIN;
-        } else {
-          s.className = "fail";
-          const m = document.createElement("span");
-          m.textContent = "Couldn't load this page";
-          const bt = document.createElement("button");
-          bt.className = "btn filled retry";
-          bt.textContent = "Retry";
-          bt.onclick = () => retryHook && retryHook(i);
-          ["mousedown", "touchstart", "pointerdown"].forEach((ev) =>
-            bt.addEventListener(ev, (e) => e.stopPropagation()),
-          );
-          s.append(m, bt);
-        }
-        d.appendChild(s);
-      }
-      function showPage(i) {
-        if (pageEls[i]) fill(pageEls[i], i);
-      }
-      function build(start) {
-        destroyFlip();
-        const st = $("stage"),
-          portrait = st.clientWidth - PAD < 720,
-          n = pages.length;
-        const pw = Math.floor(fitWidth() * zoom),
-          ph = Math.floor(pw / ratio);
-        st.classList.toggle("zoomed", zoom > 1);
-        const host = document.createElement("div");
-        host.className = "flip";
-        host.style.cssText = `width:${portrait ? pw : pw * 2}px;height:${ph}px`;
-        st.appendChild(host);
-        pageEls = [];
-        for (let i = 0; i < n; i++) {
-          const d = document.createElement("div");
-          d.className = "page";
-          if (i === 0 || i === n - 1) d.dataset.density = "hard";
-          fill(d, i);
-          host.appendChild(d);
-          pageEls.push(d);
-        }
-        flip = new St.PageFlip(host, {
-          width: pw,
-          height: ph,
-          size: "stretch",
-          minWidth: pw * 0.9,
-          maxWidth: pw * 1.5,
-          minHeight: ph * 0.5,
-          maxHeight: ph * 1.5,
-          showCover: true,
-          maxShadowOpacity: 0.5,
-          usePortrait: true,
-          mobileScrollSupport: true,
-          useMouseEvents: zoom === 1, // when zoomed, swiping/dragging scrolls instead of flipping
-        });
-        flip.loadFromHTML(host.querySelectorAll(".page"));
-        if (start > 0) flip.turnToPage(start);
-        flip.on("flip", (e) => {
-          cur = e.data;
-          updateUI();
-        });
-        updateUI();
-      }
-      function setSeek(v) {
-        const n = pages.length;
-        $("seek").style.setProperty(
-          "--p",
-          (n > 1 ? ((v - 1) / (n - 1)) * 100 : 0) + "%",
-        );
-      }
-      function updateUI() {
-        if (!flip) return;
-        cur = Math.min(flip.getCurrentPageIndex(), pages.length - 1);
-        if (curId)
-          history.replaceState(
-            history.state,
-            "",
-            `#read=${encodeURIComponent(curId)}&page=${cur + 1}`,
-          );
-        $("seek").value = cur + 1;
-        $("goto").value = cur + 1;
-        setSeek(cur + 1);
-        $("prev").disabled = cur <= 0;
-        $("next").disabled = cur >= pages.length - 1;
-        $("zval").textContent = Math.round(zoom * 100) + "%";
-        $("zout").disabled = zoom <= ZOOMS[0];
-        $("zin").disabled = zoom >= ZOOMS[ZOOMS.length - 1];
-      }
-      function goTo(n) {
-        if (!flip) return;
-        n = Math.max(1, Math.min(pages.length, parseInt(n, 10) || 1));
-        flip.turnToPage(n - 1);
-        updateUI();
-      }
-      function setZoom(z) {
-        zoom = z;
-        build(cur);
-      }
-
-      async function openBook(b, start = 0) {
-        const my = ++token;
-        destroyFlip();
-        freePages();
-        zoom = 1;
-        cur = Math.max(0, start);
-        readerOn = true;
-        curId = b.uid;
-        curBook = b;
-        syncLock();
-        $("reader").classList.remove("ready");
-        $("reader").classList.add("on");
-        $("rtitle").textContent = `${b.title} — ${b.sub}`;
-        $("bg").classList.add("done");
-        $("bg").firstElementChild.style.width = "0";
-        showMsg("Opening the issue…", 0);
-
-        const id = b.driveId || b.pdf;
-        // render size: sharp on retina screens and at 300% zoom; bucketed so cached pages are reused
-        const dpr = Math.min(window.devicePixelRatio || 1, 3),
-          cap = innerWidth < 720 ? 1800 : 2400;
-        const stW = $("stage").clientWidth - PAD;
-        const target =
-          Math.round(
-            Math.min(
-              cap,
-              Math.max(1400, (stW < 720 ? stW : stW / 2) * dpr * 2.5),
-            ) / 200,
-          ) * 200;
-        const mk = metaKey(id, target);
-        let revealed = false,
-          pdfP = null;
-        const getPdf = () =>
-          pdfP ||
-          (pdfP = (async () => {
-            // only downloaded if some page isn't cached
-            if (PROXY_URL && b.driveId && !b.pdf) {
-              if (!revealed) showMsg("Downloading the issue…");
-              const bytes = await proxyFile(b.driveId, (f) => {
-                if (!revealed && my === token)
-                  showMsg("Downloading the issue…", f * 100);
-              });
-              return await pdfjsLib.getDocument({ data: bytes }).promise;
-            }
-            const attempt = (k) => {
-              const task = pdfjsLib.getDocument({
-                url: b.pdf || driveApiUrl(b.driveId, k),
-              });
-              task.onProgress = (p) => {
-                if (!revealed && my === token && p.total)
-                  showMsg("Downloading the issue…", (p.loaded / p.total) * 100);
-              };
-              return task.promise;
+          if (!s && all.length > 1) {
+            const g = document.createElement("section");
+            g.className = "genres";
+            g.innerHTML = `<div class="cat-h"><h2>Books by Genre</h2></div>`;
+            const tiles = all.map((name, i) => {
+              const t = document.createElement("button");
+              t.className = "tile";
+              t.innerHTML = `<span class="ti"></span><span class="tn"></span><span class="tc">Books: <b></b></span>`;
+              const ti = t.querySelector(".ti"),
+                letter = [...name][0].toUpperCase(),
+                spec = CAT_ICON[name];
+              ti.style.background = PALETTE[i % PALETTE.length];
+              if (spec)
+                ti.appendChild(
+                  makeIcon(spec, () => {
+                    ti.textContent = letter;
+                  }),
+                );
+              else ti.textContent = letter;
+              t.querySelector(".tn").textContent = name;
+              t.querySelector("b").textContent = BOOKS.filter(
+                (b) => b.category === name,
+              ).length;
+              t.onclick = () =>
+                document
+                  .getElementById("cat-" + i)
+                  .scrollIntoView({ behavior: "smooth", block: "start" });
+              return t;
+            });
+            g.appendChild(makeCarousel(tiles));
+            root.appendChild(g);
+          }
+          groups.forEach((books, name) => {
+            const sec = document.createElement("section");
+            sec.className = "cat";
+            sec.id = "cat-" + all.indexOf(name);
+            if (s) sec.dataset.open = "1"; // while searching, show every match
+            sec.innerHTML = `<div class="cat-h"><h2></h2><button class="btn tonal va">View All</button></div>`;
+            const h2 = sec.querySelector("h2");
+            if (CAT_ICON[name]) h2.append(headIcon(CAT_ICON[name]), " " + name);
+            else h2.textContent = name;
+            sec.appendChild(makeCarousel(books.map(makeCard)));
+            sec.querySelector(".va").onclick = () => {
+              sec.dataset.open = sec.dataset.open === "1" ? "" : "1";
+              updateCarousels();
             };
-            return await (b.pdf ? attempt() : withKey(attempt)); // tries every API key before giving up
-          })().catch((e) => {
-            pdfP = null;
-            throw e;
-          }));
-        const renderOne = async (i) => {
-          let blob = await cacheGet(pageKey(id, target, i));
-          if (blob) return blob;
-          const pdf = await getPdf();
-          const page = await pdf.getPage(i + 1);
-          const vp = page.getViewport({
-            scale: target / page.getViewport({ scale: 1 }).width,
+            root.appendChild(sec);
           });
-          const c = document.createElement("canvas");
-          c.width = vp.width;
-          c.height = vp.height;
-          await page.render({ canvasContext: c.getContext("2d"), viewport: vp })
-            .promise;
-          blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.92));
-          c.width = c.height = 0;
-          cachePut(pageKey(id, target, i), blob);
-          return blob;
+          updateCarousels();
+        }
+        function updateCarousels() {
+          // "View All" only appears when a row overflows
+          const searching = !!$("q").value.trim();
+          document.querySelectorAll(".cat").forEach((sec) => {
+            const track = sec.querySelector(".track"),
+              btn = sec.querySelector(".va"),
+              open = sec.dataset.open === "1";
+            btn.textContent = open ? "Show less" : "View All";
+            btn.hidden =
+              searching || (!open && track.scrollWidth <= track.clientWidth + 2);
+          });
+          document.querySelectorAll(".car").forEach((c) => c._upd());
+        }
+        $("q").oninput = renderShelves;
+
+        /* ---------- navigation: #read=<id> = details, #read=<id>&page=<n> = reader ---------- */
+        const syncLock = () =>
+          document.documentElement.classList.toggle(
+            "lock",
+            detailOpen || readerOn,
+          );
+        const linkFor = (uid, page) =>
+          `${location.origin}${location.pathname}#read=${encodeURIComponent(uid)}${page ? `&page=${page}` : ""}`;
+        function parseHash() {
+          const m = location.hash.match(/^#read=([^&]+)(?:&page=(\d+))?/);
+          return m
+            ? { id: decodeURIComponent(m[1]), page: m[2] ? +m[2] : null }
+            : null;
+        }
+        function go(h) {
+          history.pushState({ app: 1 }, "", h);
+          route();
+        }
+        function route() {
+          const h = parseHash(),
+            b = h && BOOKS.find((x) => x.uid === h.id);
+          if (!b) {
+            hideDetail();
+            if (readerOn) teardown();
+            return;
+          }
+          if (h.page != null) {
+            hideDetail();
+            if (!readerOn || curId !== b.uid) openBook(b, h.page - 1);
+          } else {
+            if (readerOn) teardown();
+            showDetail(b);
+          }
+        }
+        const fromHome = () => {
+          history.replaceState(null, "", location.pathname + location.search);
+          route();
         };
-        const renderRetry = async (i) => {
-          // one automatic retry before giving up
+        function closeDetail() {
+          if (history.state && history.state.app) history.back();
+          else fromHome();
+        }
+        function closeReader() {
+          if (history.state && history.state.app) history.back();
+          else if (curId) {
+            history.replaceState(null, "", `#read=${encodeURIComponent(curId)}`);
+            route();
+          } else fromHome();
+        }
+        addEventListener("popstate", route);
+
+        async function share(title, subtitle, url) {
+          const text = `${title}${subtitle ? " · " + subtitle : ""} | ${SITE_NAME}`;
           try {
-            return await renderOne(i);
+            if (navigator.share) {
+              await navigator.share({
+                title: `${title} — ${SITE_NAME}`,
+                text,
+                url,
+              });
+              return;
+            }
           } catch (e) {
-            await new Promise((r) => setTimeout(r, 700));
-            return await renderOne(i);
+            if (e.name === "AbortError") return;
           }
-        };
-        retryHook = async (i) => {
-          // the "Retry" button on a failed page
-          if (my !== token) return;
-          pages[i] = null;
-          showPage(i);
+          const full = `${text}\n${url}`; // fallback: copy "title · subtitle | site" + link
           try {
-            const blob = await renderRetry(i);
-            if (my !== token) return;
-            pages[i] = URL.createObjectURL(blob);
+            await navigator.clipboard.writeText(full);
+            snack("Link copied");
           } catch (e) {
-            console.error(e);
-            pages[i] = "";
+            prompt("Copy this link", full);
           }
-          showPage(i);
-        };
-        try {
-          let meta = readMeta(mk);
-          if (!meta) {
-            const pdf = await getPdf();
-            if (my !== token) return;
-            const v0 = (await pdf.getPage(1)).getViewport({ scale: 1 });
-            meta = { n: pdf.numPages, ratio: v0.width / v0.height };
-            writeMeta(mk, meta);
-          }
-          ratio = meta.ratio;
-          pages = new Array(meta.n).fill(null);
-          cur = Math.min(cur, meta.n - 1);
-          $("seek").max = meta.n;
-          $("goto").max = meta.n;
-          $("total").textContent = meta.n;
-          const K = Math.min(2, meta.n);
-          let done = 0;
-          const next = () => {
-            // page closest to the reader's position, slightly favouring forward
-            let best = -1,
-              bd = Infinity;
-            for (let i = 0; i < pages.length; i++)
-              if (pages[i] === null) {
-                const d = i >= cur ? i - cur : (cur - i) * 1.5;
-                if (d < bd) {
-                  bd = d;
-                  best = i;
-                }
-              }
-            return best;
-          };
-          for (;;) {
-            const i = next();
-            if (i < 0) break;
-            let blob = null;
+        }
+        function snack(msg) {
+          const s = $("snack");
+          s.textContent = msg;
+          s.classList.add("on");
+          clearTimeout(s._t);
+          s._t = setTimeout(() => s.classList.remove("on"), 2400);
+        }
+
+        /* ---------- book details dialog ---------- */
+        const FIELDS = [
+          ["author", "Authors", "fa-user-pen"],
+          ["publisher", "Publisher", "fa-building-columns"],
+          ["category", "Genre", "fa-tags"],
+          ["language", "Language", "fa-language"],
+          ["sub", "Issue", "fa-bookmark"],
+          ["year", "Year", "fa-calendar-days"],
+          ["pagesN", "Pages", "fa-file-lines"],
+        ];
+        function showDetail(b) {
+          $("dtitle").textContent = b.title;
+          const rows = $("drows");
+          rows.innerHTML = "";
+          FIELDS.forEach(([k, label, ic]) => {
+            if (!b[k]) return;
+            const r = document.createElement("div");
+            r.className = "d-row";
+            r.innerHTML = `<i class="fa-solid ${ic}"></i><span class="dl"></span><b class="dv"></b>`;
+            r.querySelector(".dl").textContent = label;
+            r.querySelector(".dv").textContent = b[k];
+            rows.appendChild(r);
+          });
+          $("dcover").innerHTML = "";
+          $("dcover").appendChild(coverEl(b));
+          $("dsumwrap").hidden = !b.summary;
+          $("dsum").textContent = b.summary;
+          $("dread").onclick = () =>
+            go(`#read=${encodeURIComponent(b.uid)}&page=1`);
+          $("dshare").onclick = () => share(b.title, b.sub, linkFor(b.uid));
+          $("detail").hidden = false;
+          detailOpen = true;
+          syncLock();
+          $("dread").focus();
+        }
+        function hideDetail() {
+          if (!detailOpen) return;
+          $("detail").hidden = true;
+          detailOpen = false;
+          syncLock();
+        }
+        $("dclose").onclick = closeDetail;
+        $("detail").addEventListener("click", (e) => {
+          if (e.target === $("detail")) closeDetail();
+        });
+
+        /* ---------- reader ---------- */
+        function showMsg(text, pct, err) {
+          $("msg").classList.remove("hide");
+          $("mtxt").textContent = text;
+          $("mspin").hidden = $("prog").hidden = !!err;
+          $("prog").className = "linear" + (pct == null ? " ind" : "");
+          if (pct != null) $("prog").firstElementChild.style.width = pct + "%";
+        }
+        function destroyFlip() {
+          if (flip) {
             try {
-              blob = await renderRetry(i);
+              flip.destroy();
+            } catch (e) {}
+            flip = null;
+          }
+          $("stage").innerHTML = "";
+        }
+        function freePages() {
+          pages.forEach((u) => u && URL.revokeObjectURL(u));
+          pages = [];
+          pageEls = [];
+        }
+        function fitWidth() {
+          // page width at which the whole book fits the stage (no scrollbars)
+          const st = $("stage"),
+            W = st.clientWidth - PAD,
+            H = st.clientHeight - PAD;
+          return Math.min(W < 720 ? W : W / 2, H * ratio);
+        }
+        function fill(d, i) {
+          // image, spinner (still rendering) or error + retry
+          d.innerHTML = "";
+          if (pages[i]) {
+            const im = new Image();
+            im.src = pages[i];
+            im.alt = `Page ${i + 1}`;
+            im.draggable = false;
+            d.appendChild(im);
+            return;
+          }
+          const s = document.createElement("span");
+          if (pages[i] === null) {
+            s.className = "spin";
+            s.innerHTML = SPIN;
+          } else {
+            s.className = "fail";
+            const m = document.createElement("span");
+            m.textContent = "Couldn't load this page";
+            const bt = document.createElement("button");
+            bt.className = "btn filled retry";
+            bt.textContent = "Retry";
+            bt.onclick = () => retryHook && retryHook(i);
+            ["mousedown", "touchstart", "pointerdown"].forEach((ev) =>
+              bt.addEventListener(ev, (e) => e.stopPropagation()),
+            );
+            s.append(m, bt);
+          }
+          d.appendChild(s);
+        }
+        function showPage(i) {
+          if (pageEls[i]) fill(pageEls[i], i);
+        }
+        function build(start) {
+          destroyFlip();
+          const st = $("stage"),
+            portrait = st.clientWidth - PAD < 720,
+            n = pages.length;
+          const pw = Math.floor(fitWidth() * zoom),
+            ph = Math.floor(pw / ratio);
+          st.classList.toggle("zoomed", zoom > 1);
+          const host = document.createElement("div");
+          host.className = "flip";
+          host.style.cssText = `width:${portrait ? pw : pw * 2}px;height:${ph}px`;
+          st.appendChild(host);
+          pageEls = [];
+          for (let i = 0; i < n; i++) {
+            const d = document.createElement("div");
+            d.className = "page";
+            if (i === 0 || i === n - 1) d.dataset.density = "hard";
+            fill(d, i);
+            host.appendChild(d);
+            pageEls.push(d);
+          }
+          flip = new St.PageFlip(host, {
+            width: pw,
+            height: ph,
+            size: "stretch",
+            minWidth: pw * 0.9,
+            maxWidth: pw * 1.5,
+            minHeight: ph * 0.5,
+            maxHeight: ph * 1.5,
+            showCover: true,
+            maxShadowOpacity: 0.5,
+            usePortrait: true,
+            mobileScrollSupport: true,
+            useMouseEvents: zoom === 1, // when zoomed, swiping/dragging scrolls instead of flipping
+          });
+          flip.loadFromHTML(host.querySelectorAll(".page"));
+          if (start > 0) flip.turnToPage(start);
+          flip.on("flip", (e) => {
+            cur = e.data;
+            updateUI();
+          });
+          updateUI();
+        }
+        function setSeek(v) {
+          const n = pages.length;
+          $("seek").style.setProperty(
+            "--p",
+            (n > 1 ? ((v - 1) / (n - 1)) * 100 : 0) + "%",
+          );
+        }
+        function updateUI() {
+          if (!flip) return;
+          cur = Math.min(flip.getCurrentPageIndex(), pages.length - 1);
+          if (curId)
+            history.replaceState(
+              history.state,
+              "",
+              `#read=${encodeURIComponent(curId)}&page=${cur + 1}`,
+            );
+          $("seek").value = cur + 1;
+          $("goto").value = cur + 1;
+          setSeek(cur + 1);
+          $("prev").disabled = cur <= 0;
+          $("next").disabled = cur >= pages.length - 1;
+          $("zval").textContent = Math.round(zoom * 100) + "%";
+          $("zout").disabled = zoom <= ZOOMS[0];
+          $("zin").disabled = zoom >= ZOOMS[ZOOMS.length - 1];
+        }
+        function goTo(n) {
+          if (!flip) return;
+          n = Math.max(1, Math.min(pages.length, parseInt(n, 10) || 1));
+          flip.turnToPage(n - 1);
+          updateUI();
+        }
+        function setZoom(z) {
+          zoom = z;
+          build(cur);
+        }
+
+        async function openBook(b, start = 0) {
+          const my = ++token;
+          destroyFlip();
+          freePages();
+          zoom = 1;
+          cur = Math.max(0, start);
+          readerOn = true;
+          curId = b.uid;
+          curBook = b;
+          syncLock();
+          $("reader").classList.remove("ready");
+          $("reader").classList.add("on");
+          $("rtitle").textContent = `${b.title} — ${b.sub}`;
+          $("bg").classList.add("done");
+          $("bg").firstElementChild.style.width = "0";
+          showMsg("Opening the issue…", 0);
+
+          const id = b.driveId || b.pdf;
+          // render size: sharp on retina screens and at 300% zoom; bucketed so cached pages are reused
+          const dpr = Math.min(window.devicePixelRatio || 1, 3),
+            cap = innerWidth < 720 ? 1800 : 2400;
+          const stW = $("stage").clientWidth - PAD;
+          const target =
+            Math.round(
+              Math.min(
+                cap,
+                Math.max(1400, (stW < 720 ? stW : stW / 2) * dpr * 2.5),
+              ) / 200,
+            ) * 200;
+          const mk = metaKey(id, target);
+          let revealed = false,
+            pdfP = null;
+          const getPdf = () =>
+            pdfP ||
+            (pdfP = (async () => {
+              // only downloaded if some page isn't cached
+              if (PROXIES.length && b.driveId && !b.pdf) {
+                if (!revealed) showMsg("Downloading the issue…");
+                const bytes = await proxyFile(b.driveId, (f) => {
+                  if (!revealed && my === token)
+                    showMsg("Downloading the issue…", f * 100);
+                });
+                return await pdfjsLib.getDocument({ data: bytes }).promise;
+              }
+              const attempt = (k) => {
+                const task = pdfjsLib.getDocument({
+                  url: b.pdf || driveApiUrl(b.driveId, k),
+                });
+                task.onProgress = (p) => {
+                  if (!revealed && my === token && p.total)
+                    showMsg("Downloading the issue…", (p.loaded / p.total) * 100);
+                };
+                return task.promise;
+              };
+              return await (b.pdf ? attempt() : withKey(attempt)); // tries every API key before giving up
+            })().catch((e) => {
+              pdfP = null;
+              throw e;
+            }));
+          const renderOne = async (i) => {
+            let blob = await cacheGet(pageKey(id, target, i));
+            if (blob) return blob;
+            const pdf = await getPdf();
+            const page = await pdf.getPage(i + 1);
+            const vp = page.getViewport({
+              scale: target / page.getViewport({ scale: 1 }).width,
+            });
+            const c = document.createElement("canvas");
+            c.width = vp.width;
+            c.height = vp.height;
+            await page.render({ canvasContext: c.getContext("2d"), viewport: vp })
+              .promise;
+            blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.92));
+            c.width = c.height = 0;
+            cachePut(pageKey(id, target, i), blob);
+            return blob;
+          };
+          const renderRetry = async (i) => {
+            // one automatic retry before giving up
+            try {
+              return await renderOne(i);
+            } catch (e) {
+              await new Promise((r) => setTimeout(r, 700));
+              return await renderOne(i);
+            }
+          };
+          retryHook = async (i) => {
+            // the "Retry" button on a failed page
+            if (my !== token) return;
+            pages[i] = null;
+            showPage(i);
+            try {
+              const blob = await renderRetry(i);
+              if (my !== token) return;
+              pages[i] = URL.createObjectURL(blob);
             } catch (e) {
               console.error(e);
-              if (!revealed) throw e;
-              if (my !== token) return;
               pages[i] = "";
-              showPage(i);
-              continue;
             }
-            if (my !== token) return;
-            pages[i] = URL.createObjectURL(blob);
-            done++;
-            if (revealed) showPage(i);
-            else if (done >= K) {
-              revealed = true;
-              $("msg").classList.add("hide");
-              $("reader").classList.add("ready");
-              build(cur);
-            } else showMsg(`Loading page ${done} of ${K}`, (done / K) * 100);
-            $("bg").classList.toggle("done", done >= meta.n); // thin bar = the rest loads in the background
-            $("bg").firstElementChild.style.width = (done / meta.n) * 100 + "%";
-          }
-        } catch (err) {
-          console.error(err);
-          if (my === token) {
-            destroyFlip();
-            const code = statusOf(err);
-            let why = "Couldn't load this issue.";
-            if (+code === 401 || +code === 403)
-              why +=
-                " Google refused access (HTTP " +
-                code +
-                "). With the API key the file must be shared as “Anyone with the link”, and the key must allow this website. For private files, set PROXY_URL.";
-            else if (+code === 404)
-              why +=
-                " File not found (HTTP 404): the driveId is wrong, or the file is not shared as “Anyone with the link” (Drive reports private files as not found to visitors who aren't signed in).";
-            else if (err && err.message)
-              why +=
-                " (" +
-                String(err.message).replace(/https?:\/\/\S+/g, "…") +
-                ")"; // never print URLs (they contain the key)
-            showMsg(why, null, true);
+            showPage(i);
+          };
+          try {
+            let meta = readMeta(mk);
+            if (!meta) {
+              const pdf = await getPdf();
+              if (my !== token) return;
+              const v0 = (await pdf.getPage(1)).getViewport({ scale: 1 });
+              meta = { n: pdf.numPages, ratio: v0.width / v0.height };
+              writeMeta(mk, meta);
+            }
+            ratio = meta.ratio;
+            pages = new Array(meta.n).fill(null);
+            cur = Math.min(cur, meta.n - 1);
+            $("seek").max = meta.n;
+            $("goto").max = meta.n;
+            $("total").textContent = meta.n;
+            const K = Math.min(2, meta.n);
+            let done = 0;
+            const next = () => {
+              // page closest to the reader's position, slightly favouring forward
+              let best = -1,
+                bd = Infinity;
+              for (let i = 0; i < pages.length; i++)
+                if (pages[i] === null) {
+                  const d = i >= cur ? i - cur : (cur - i) * 1.5;
+                  if (d < bd) {
+                    bd = d;
+                    best = i;
+                  }
+                }
+              return best;
+            };
+            for (;;) {
+              const i = next();
+              if (i < 0) break;
+              let blob = null;
+              try {
+                blob = await renderRetry(i);
+              } catch (e) {
+                console.error(e);
+                if (!revealed) throw e;
+                if (my !== token) return;
+                pages[i] = "";
+                showPage(i);
+                continue;
+              }
+              if (my !== token) return;
+              pages[i] = URL.createObjectURL(blob);
+              done++;
+              if (revealed) showPage(i);
+              else if (done >= K) {
+                revealed = true;
+                $("msg").classList.add("hide");
+                $("reader").classList.add("ready");
+                build(cur);
+              } else showMsg(`Loading page ${done} of ${K}`, (done / K) * 100);
+              $("bg").classList.toggle("done", done >= meta.n); // thin bar = the rest loads in the background
+              $("bg").firstElementChild.style.width = (done / meta.n) * 100 + "%";
+            }
+          } catch (err) {
+            console.error(err);
+            if (my === token) {
+              destroyFlip();
+              const code = statusOf(err);
+              let why = "Couldn't load this issue.";
+              if (+code === 401 || +code === 403)
+                why +=
+                  " Google refused access (HTTP " +
+                  code +
+                  "). With the API key the file must be shared as “Anyone with the link”, and the key must allow this website. For private files, set PROXY_URL.";
+              else if (+code === 404)
+                why +=
+                  " File not found (HTTP 404): the driveId is wrong, or the file is not shared as “Anyone with the link” (Drive reports private files as not found to visitors who aren't signed in).";
+              else if (
+                /No item with the given ID|not listed in the sheet/.test(
+                  String(err && err.message),
+                )
+              )
+                why +=
+                  " The proxy's Google account can't see this file. Share the file (privately) with that account, or deploy a proxy from the account that owns it and add it to PROXY_URLS.";
+              else if (err && err.message)
+                why +=
+                  " (" +
+                  String(err.message).replace(/https?:\/\/\S+/g, "…") +
+                  ")"; // never print URLs (they contain the key)
+              showMsg(why, null, true);
+            }
           }
         }
-      }
-      function teardown() {
-        token++;
-        retryHook = null;
-        curId = null;
-        curBook = null;
-        destroyFlip();
-        freePages();
-        $("reader").classList.remove("on", "ready");
-        readerOn = false;
-        syncLock();
-      }
+        function teardown() {
+          token++;
+          retryHook = null;
+          curId = null;
+          curBook = null;
+          destroyFlip();
+          freePages();
+          $("reader").classList.remove("on", "ready");
+          readerOn = false;
+          syncLock();
+        }
 
-      $("close").onclick = closeReader;
-      $("rshare").onclick = () =>
-        curBook &&
-        share(
-          curBook.title,
-          `${curBook.sub} · page ${cur + 1}`,
-          linkFor(curId, cur + 1),
-        );
-      $("prev").onclick = () => flip && flip.flipPrev();
-      $("next").onclick = () => flip && flip.flipNext();
-      $("zin").onclick = () =>
-        setZoom(ZOOMS[Math.min(ZOOMS.indexOf(zoom) + 1, ZOOMS.length - 1)]);
-      $("zout").onclick = () =>
-        setZoom(ZOOMS[Math.max(ZOOMS.indexOf(zoom) - 1, 0)]);
-      $("zval").onclick = () => setZoom(1);
-      $("gobtn").onclick = () => goTo($("goto").value);
-      $("goto").onkeydown = (e) => {
-        if (e.key === "Enter") goTo(e.target.value);
-      };
-      $("seek").oninput = (e) => {
-        $("goto").value = e.target.value;
-        setSeek(+e.target.value);
-      };
-      $("seek").onchange = (e) => goTo(e.target.value);
-
-      let drag = null;
-      const stage = $("stage"); // mouse drag to pan when zoomed (touch uses native scrolling)
-      stage.addEventListener("pointerdown", (e) => {
-        if (zoom <= 1 || e.pointerType !== "mouse" || e.button !== 0) return;
-        drag = {
-          x: e.clientX,
-          y: e.clientY,
-          l: stage.scrollLeft,
-          t: stage.scrollTop,
+        $("close").onclick = closeReader;
+        $("rshare").onclick = () =>
+          curBook &&
+          share(
+            curBook.title,
+            `${curBook.sub} · page ${cur + 1}`,
+            linkFor(curId, cur + 1),
+          );
+        $("prev").onclick = () => flip && flip.flipPrev();
+        $("next").onclick = () => flip && flip.flipNext();
+        $("zin").onclick = () =>
+          setZoom(ZOOMS[Math.min(ZOOMS.indexOf(zoom) + 1, ZOOMS.length - 1)]);
+        $("zout").onclick = () =>
+          setZoom(ZOOMS[Math.max(ZOOMS.indexOf(zoom) - 1, 0)]);
+        $("zval").onclick = () => setZoom(1);
+        $("gobtn").onclick = () => goTo($("goto").value);
+        $("goto").onkeydown = (e) => {
+          if (e.key === "Enter") goTo(e.target.value);
         };
-        stage.setPointerCapture(e.pointerId);
-        stage.classList.add("grabbing");
-      });
-      stage.addEventListener("pointermove", (e) => {
-        if (!drag) return;
-        stage.scrollLeft = drag.l - (e.clientX - drag.x);
-        stage.scrollTop = drag.t - (e.clientY - drag.y);
-      });
-      ["pointerup", "pointercancel"].forEach((t) =>
-        stage.addEventListener(t, () => {
-          drag = null;
-          stage.classList.remove("grabbing");
-        }),
-      );
+        $("seek").oninput = (e) => {
+          $("goto").value = e.target.value;
+          setSeek(+e.target.value);
+        };
+        $("seek").onchange = (e) => goTo(e.target.value);
 
-      addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-          if (readerOn) closeReader();
-          else if (detailOpen) closeDetail();
-          return;
-        }
-        if (!readerOn || e.target.tagName === "INPUT") return;
-        if (e.key === "ArrowLeft" && flip) flip.flipPrev();
-        if (e.key === "ArrowRight" && flip) flip.flipNext();
-        if ((e.key === "+" || e.key === "=") && !$("zin").disabled)
-          $("zin").click();
-        if (e.key === "-" && !$("zout").disabled) $("zout").click();
-      });
-      let rz;
-      addEventListener("resize", () => {
-        updateCarousels();
-        clearTimeout(rz);
-        rz = setTimeout(() => {
-          if (flip && pages.length) build(cur);
-        }, 250);
-      });
-      addEventListener(
-        "scroll",
-        () => {
-          $("top").hidden = scrollY < 400;
-        },
-        { passive: true },
-      );
-      $("top").onclick = () => scrollTo({ top: 0, behavior: "smooth" });
-      document.title = SITE_NAME;
-      document.querySelector(".brand").textContent = SITE_NAME;
-      loadBooks();
+        let drag = null;
+        const stage = $("stage"); // mouse drag to pan when zoomed (touch uses native scrolling)
+        stage.addEventListener("pointerdown", (e) => {
+          if (zoom <= 1 || e.pointerType !== "mouse" || e.button !== 0) return;
+          drag = {
+            x: e.clientX,
+            y: e.clientY,
+            l: stage.scrollLeft,
+            t: stage.scrollTop,
+          };
+          stage.setPointerCapture(e.pointerId);
+          stage.classList.add("grabbing");
+        });
+        stage.addEventListener("pointermove", (e) => {
+          if (!drag) return;
+          stage.scrollLeft = drag.l - (e.clientX - drag.x);
+          stage.scrollTop = drag.t - (e.clientY - drag.y);
+        });
+        ["pointerup", "pointercancel"].forEach((t) =>
+          stage.addEventListener(t, () => {
+            drag = null;
+            stage.classList.remove("grabbing");
+          }),
+        );
+
+        addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            if (readerOn) closeReader();
+            else if (detailOpen) closeDetail();
+            return;
+          }
+          if (!readerOn || e.target.tagName === "INPUT") return;
+          if (e.key === "ArrowLeft" && flip) flip.flipPrev();
+          if (e.key === "ArrowRight" && flip) flip.flipNext();
+          if ((e.key === "+" || e.key === "=") && !$("zin").disabled)
+            $("zin").click();
+          if (e.key === "-" && !$("zout").disabled) $("zout").click();
+        });
+        let rz;
+        addEventListener("resize", () => {
+          updateCarousels();
+          clearTimeout(rz);
+          rz = setTimeout(() => {
+            if (flip && pages.length) build(cur);
+          }, 250);
+        });
+        addEventListener(
+          "scroll",
+          () => {
+            $("top").hidden = scrollY < 400;
+          },
+          { passive: true },
+        );
+        $("top").onclick = () => scrollTo({ top: 0, behavior: "smooth" });
+        document.title = SITE_NAME;
+        document.querySelector(".brand").textContent = SITE_NAME;
+        loadBooks();
     </script>
   </body>
 </html>
